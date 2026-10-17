@@ -3,22 +3,38 @@
   <head>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="mztap-options.css">
+    <link rel="stylesheet" href="mztap-privacy.css">
   </head>
   <body>
     <div id="miczRelNotes"><a href="mztap-release-notes.html">__MSG_prefs_OptionText_release_notes__</a></div>
-    <table id="miczPrefs">
-        <tr>
-          <td><label>
-            <span>__MSG_prefs_OptionText_do_debug__</span>
-          </label></td>
-          <td>
-            <label>
-              <input type="checkbox" id="do_debug" name="do_debug" class="option-input" />
-              <span>__MSG_prefs_OptionText_do_debug_info__</span>
-            </label>
-          </td>
-        </tr>
-    </table>
+    <main id="privacy_settings">
+      <h1>ThunderAI Privacy</h1>
+      <div class="privacy_enable_row">
+        <div><label for="privacy_filter_enabled" class="privacy_enable_label">__MSG_privacy_enable__</label><p id="privacy_intro" class="mzta_help">__MSG_privacy_intro__</p></div>
+        <label class="mzta_switch"><input type="checkbox" id="privacy_filter_enabled" aria-describedby="privacy_intro" disabled><span class="track"></span></label>
+      </div>
+      <div class="privacy_model_card" role="group" aria-labelledby="privacy_model_label">
+        <div id="privacy_model_label" class="privacy_meta_label">__MSG_privacy_model_label__</div>
+        <code id="privacy_model"></code>
+        <dl class="privacy_model_meta">
+          <div><dt>__MSG_privacy_processing_label__</dt><dd id="privacy_backend"></dd></div>
+          <div><dt>__MSG_privacy_size_label__</dt><dd id="privacy_size">__MSG_privacy_size_unknown__</dd></div>
+        </dl>
+        <div class="privacy_actions">
+          <button id="privacy_download" class="btn_primary" disabled>__MSG_privacy_download__</button>
+          <button id="privacy_refresh">__MSG_privacy_refresh__</button>
+          <button id="privacy_delete" disabled>__MSG_privacy_delete__</button>
+        </div>
+        <progress id="privacy_progress" max="100" aria-label="__MSG_privacy_download__" hidden></progress>
+        <p id="privacy_status" role="status" aria-live="polite"></p>
+      </div>
+      <details class="privacy_details"><summary>__MSG_privacy_coverage_label__</summary><p class="mzta_help">__MSG_privacy_description__</p></details>
+      <details class="privacy_details" id="privacy_diagnostics">
+        <summary>__MSG_privacy_diagnostics_label__ <span class="privacy_sensitive_note">__MSG_privacy_sensitive_note__</span></summary>
+        <label class="privacy_log_label"><input type="checkbox" id="do_debug" aria-describedby="privacy_log_warning"> <span>__MSG_privacy_log__</span></label>
+        <p id="privacy_log_warning" class="mzta_help">__MSG_privacy_log_warning__</p>
+      </details>
+    </main>
     <div id="miczDescription">
       <h1>__MSG_prefsInfoTitle__</h1>
       <p><span>__MSG_prefsInfoDesc_1__<br/></span>

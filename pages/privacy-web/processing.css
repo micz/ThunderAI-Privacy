@@ -1,0 +1,12 @@
+/* ThunderAI Privacy — Copyright (C) 2026 Mic (m@micz.it), Nico Martin (mail@nico.dev).
+ * SPDX-License-Identifier: GPL-3.0-or-later */
+:root { color-scheme: light dark; font: message-box; }
+body { margin: 24px; line-height: 1.5; }
+h1 { font-size: 1.3rem; }
+label { display: block; margin-top: 16px; }
+textarea { display: block; box-sizing: border-box; width: 100%; min-height: 110px; margin: 8px 0; font: inherit; }
+button { margin-top: 12px; padding: 6px 18px; font: inherit; }
+#result { white-space: pre-wrap; overflow-wrap: anywhere; }
+.added { background: light-dark(#d9f4dd, #174c29); }
+.removed { background: light-dark(#ffe0e0, #622626); text-decoration: line-through; }
+#error { color: light-dark(#b00020, #ff9292); }

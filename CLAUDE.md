@@ -38,8 +38,9 @@ https://github.com/micz/ThunderAI-Privacy/issues
 1. Privacy registers `browser.runtime.onMessageExternal` (see
    [`mztap-background.js`](mztap-background.js)).
 2. ThunderAI sends a message to `thunderai-privacy@micz.it` with an `action`:
-   - `checkPresence` → Privacy replies with its version string (so ThunderAI can
-     detect Privacy is installed and which version).
+   - `checkPresence` → manifest version string.
+   - `aiProcessing.*` → versioned async session/before/after/cancel/dispose hooks.
+3. Privacy sends registration and progress to ThunderAI; both validate exact IDs.
 
 The full contract is in [`claude-spec/03-data-contracts.md`](claude-spec/03-data-contracts.md).
 
@@ -52,8 +53,13 @@ js/
   mztap-logger.js          tapLogger — debug logging gated on the do_debug pref
   mztap-i18n.js            __MSG_*__ DOM localization helper (vendored)
   mztap-options.js         Options-manager helper (vendored, MPL-2.0)
-  mztap-options-default.js Default prefs: { do_debug: false }
+  mztap-options-default.js Local defaults: do_debug/ privacy_filter_enabled false
+  mztap-service.js         Versioned hook service, companion-owned settings/sessions
+  mztap-privacy-*.js       Detection, mappings, model management and restoration
+  workers/                Shared local inference worker
+  lib/transformers/       Bundled JS/WASM runtime (see VENDORS.md)
 options/                   Options UI + release-notes page
+pages/privacy-web/         Companion-owned Web input/result/diff windows
 _locales/<lang>/messages.json   Translations (default_locale: en)
 images/                    Icons
 ```
@@ -88,7 +94,8 @@ See [`claude-spec/`](claude-spec/) for detailed architecture docs.
 ## Testing / running
 
 There is no build step and no automated test suite. To exercise it manually you
-load it as a temporary add-on in Thunderbird (140+) alongside ThunderAI.
+load it as a temporary add-on in Thunderbird (153+, 64-bit) alongside an API v1
+ThunderAI build. The manifest is authoritative for minimum compatibility.
 
 ## Gotchas
 

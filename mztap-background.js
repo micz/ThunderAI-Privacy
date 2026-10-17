@@ -16,30 +16,6 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { tapLogger } from "./js/mztap-logger.js";
+import { initializePrivacyService } from './js/mztap-service.js';
 
-const PRIVACY_VERSION = browser.runtime.getManifest().version;
-
-// First install
-browser.runtime.onInstalled.addListener(({reason}) => {
-  if (reason == "install") {
-    // do what you need
-  }
-});
-
-let prefs_init = await browser.storage.sync.get({do_debug: false});
-let tapLog = new tapLogger("mztap-background",prefs_init.do_debug);
-
-// Listen for messages from ThunderAI
-browser.runtime.onMessageExternal.addListener((message, sender, sendResponse) => {
-  tapLog.log("Message received:", message);
-  tapLog.log("Sender info:", sender);
-
-  switch (message.action) {
-    case "checkPresence":
-      return Promise.resolve(PRIVACY_VERSION);
-      break;
-  }
-
-  return true;
-});
+initializePrivacyService();

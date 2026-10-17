@@ -1,44 +1,34 @@
 # ThunderAI integration
 
-Privacy is a **companion add-on** to ThunderAI. This document draws the boundary
-between the two so you always change the right repository.
+| Responsibility | Owner |
+|---|---|
+| Menus, prompts, message extraction, providers/API credentials | ThunderAI |
+| Before/after hook dispatch, progress/Stop, processed provider history | ThunderAI |
+| Privacy activation/settings, model/runtime/downloads | Privacy |
+| Detection, placeholders, mappings, response restoration | Privacy |
+| Web custom-input and processed-response views | Privacy extension pages |
 
-- **ThunderAI** (main add-on): https://github.com/micz/ThunderAI — ID
-  `thunderai@micz.it`
-- **Privacy** (this repo): ID `thunderai-privacy@micz.it`
+ThunderAI's `ProcessingWorker` applies hooks to all provider workers for chat actions,
+follow-ups and special commands (including automatic and batch features). Response
+text/thinking is buffered while processing is active. Thinking is separated before
+restoration; structured results are restored before parsing/storing/Sparks actions.
+Postprocessed replies remain local and never re-enter provider conversation history.
 
-## Responsibility split
+For ChatGPT Web, the before hook runs before DOM insertion. Custom input is collected
+in Privacy's own window, outside the site's DOM. The after hook runs when extracting text for Thunderbird
+reply/replace or a companion-owned view/diff; original values and diff baselines are never
+written back into the site. Direct typing into ChatGPT, existing conversations and
+project/custom-GPT content are outside this protection.
 
-| Concern | Lives in | This repo? |
-|---|---|---|
-| Prompt text / prompt settings | ThunderAI | ❌ |
-| LLM/model calls, API keys | ThunderAI | ❌ |
-| Menus & user actions | ThunderAI | ❌ |
-| Detecting Privacy & its version | ThunderAI (via `checkPresence`) | ✅ replies |
+Without an active processor, ThunderAI hooks return unchanged content. Active failures
+abort; there is no silent bypass. Exact wire messages and lifecycle semantics are in
+[03-data-contracts.md](03-data-contracts.md). Load both repositories as temporary
+add-ons; a ThunderAI build implementing API v1 is required (target ThunderAI 5.2.0).
 
-## Message boundary
+## Manual checks
 
-ThunderAI → Privacy, via `runtime.sendMessage('thunderai-privacy@micz.it', ...)`:
-
-- `checkPresence` → version string back.
-
-Privacy → ThunderAI: none.
-
-Exact payloads: [`03-data-contracts.md`](03-data-contracts.md).
-
-## On the ThunderAI side
-
-ThunderAI detects Sparks with `checkSparksPresence()` in `js/mzta-utils.js`
-(`checkPresence` + a minimum version, `sparks_min`). Privacy is meant to be
-detected the same way, with its own minimum version.
-
-## Checklist: adding a new action
-
-1. **Privacy** — `mztap-background.js`: handle the new `message.action`.
-2. **Privacy** — document it in [`03-data-contracts.md`](03-data-contracts.md).
-3. **Privacy** — bump `manifest.json` version, add the release-notes /
-   `CHANGELOG.md` entry.
-4. **ThunderAI** — send the action, gated on the Privacy version.
-5. File/track the issue in **this** repo
-   (https://github.com/micz/ThunderAI-Privacy/issues); link the ThunderAI
-   issue for the ThunderAI side, if there is one.
+Use fictional values and verify CPU/WebGPU, model download/partial cache/deletion,
+long inputs, follow-up placeholder reuse, inline/dedicated thinking, JSON escaping,
+Web reply/replace/view/diff, cancellation/timeout, concurrent commands and companion
+restart/uninstall/deactivation. Inspect outgoing bodies and ensure restored originals
+do not return in provider history. No automated test suite is shipped.

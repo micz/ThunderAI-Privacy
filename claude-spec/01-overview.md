@@ -23,7 +23,11 @@ and no `strict_max_version` tied to a Thunderbird release.
 
 | Feature | Trigger (from ThunderAI) | Privacy action |
 |---|---|---|
-| Presence/version detection | `checkPresence` | returns manifest version |
+| Presence/version detection | `checkPresence`, `aiProcessing.hello` | returns version and processing status |
+| Before-send filtering | `aiProcessing.before` | masks prompt, instructions and extra-body strings |
+| Response restoration | `aiProcessing.after` | restores text, HTML or JSON strings locally |
+| Session lifecycle | create/cancel/dispose | isolated mappings, shared classifier, progress |
+| Local settings | options page | activation, model management, diagnostics |
 
 (See [`03-data-contracts.md`](03-data-contracts.md).)
 

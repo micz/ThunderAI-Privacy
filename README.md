@@ -12,7 +12,16 @@ ThunderAI Privacy is an add-on for Thunderbird, designed to add privacy features
 
 
 ## Features
-Work in progress.
+* Local, best-effort personal-data detection with WebGPU or CPU/WASM.
+* Masks ThunderAI prompts, follow-ups, provider instructions and automatic features.
+* Restores responses locally; provider conversation history stays masked.
+* Overlapping chunk processing for long inputs, with progress and cancellation.
+* Companion-owned settings, model download/deletion and opt-in sensitive diagnostics.
+* Companion-owned Web input and restored response/diff windows; originals stay out
+  of the provider's page. Diagnostics log hook content, not provider HTTP requests.
+
+Detection can miss data. Direct input into ChatGPT, existing conversations and
+project/custom-GPT content are outside ThunderAI's protection.
 
 <br>
 
@@ -31,7 +40,16 @@ Install both add-ons from the [ThunderAI add-on page](https://micz.it/thunderbir
 
 | ThunderAI Privacy | Requires ThunderAI | Thunderbird |
 |---|---|---|
-| 1.0.0 | to be defined | 140+ |
+| 1.0.0 | Processing API v1 build (target 5.2.0) | 153+ (64-bit) |
+
+### Development setup
+
+Load this repository's `manifest.json` and the sibling ThunderAI build as temporary
+add-ons. In ThunderAI Privacy settings, download the model and enable filtering.
+Activation requires a compatible ThunderAI. If the companion disappears while active,
+ThunderAI blocks rather than silently sending unfiltered data. Explicitly disable
+filtering in Privacy before removing it if you want to resume unprocessed requests.
+Model caches are extension-local: an older built-in ThunderAI cache is not shared.
 
 <br>
 

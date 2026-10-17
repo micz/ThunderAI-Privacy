@@ -16,17 +16,9 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { tapLogger } from "../js/mztap-logger.js";
 import { i18n } from "../js/mztap-i18n.js";
-import { tapPrefs } from "../js/mztap-options.js";
+import { initPrivacyOptions } from './mztap-privacy-options.js';
 
-document.addEventListener('DOMContentLoaded', async () => {
-    let do_debug = await tapPrefs.getPref("do_debug");
-    tapPrefs.logger = new tapLogger("mztap-options", do_debug);
-
-    tapPrefs.restoreOptions();
-    i18n.updateDocument();
-    document.querySelectorAll(".option-input").forEach(element => {
-      element.addEventListener("change", tapPrefs.saveOptions);
-    });
-  }, { once: true });
+const start = async () => { i18n.updateDocument(); await initPrivacyOptions(); };
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
+else void start();
