@@ -1,0 +1,14 @@
+# Machine-local files and development notes
+.DS_Store
+*.local
+*.local.*
+.vscode/
+.idea/
+.claude/
+
+# Generated dependencies, reports and packages
+node_modules/
+coverage/
+dist/
+*.log
+*.xpi

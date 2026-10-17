@@ -18,11 +18,17 @@ const FIXED_KEYS = new Set([
     'uniqueItems', 'role', 'content', 'user', 'seed', 'stop', 'frequency_penalty',
     'presence_penalty', 'logit_bias', 'logprobs', 'top_logprobs', 'stream_options',
     'include_usage', 'service_tier', 'background', 'truncation', 'verbosity',
+    'prompt_cache_key', 'safety_identifier',
 ]);
 
-export async function maskPrivacyExtraBody(body, session) {
+export async function maskPrivacyExtraBody(body, session, { maskIdentifier } = {}) {
     async function visit(value, path) {
-        if (typeof value === 'string') return (await session.mask(value)).text;
+        if (typeof value === 'string') {
+            if (maskIdentifier && path.length === 1 && ['prompt_cache_key', 'safety_identifier'].includes(path[0])) {
+                return maskIdentifier(`chatgpt_${path[0]}`, value);
+            }
+            return (await session.mask(value)).text;
+        }
         if (Array.isArray(value)) {
             const children = [];
             for (const [index, child] of value.entries()) children.push(await visit(child, [...path, index]));

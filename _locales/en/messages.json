@@ -1,4 +1,8 @@
 {
+  "privacy_text_unsupported": { "message": "This text cannot be filtered safely. Edit the input or start a new prompt; restarting Thunderbird will not resolve this text-specific error.", "description": "A deterministic tokenizer alignment, chunking or reserved-placeholder error." },
+  "privacy_unrestored_placeholder": { "message": "The AI changed a privacy placeholder. The response was blocked instead of inserting an incomplete or incorrectly restored result. Regenerate the response or start a new prompt.", "description": "Blocking error when a response still contains a changed or unknown placeholder from the current conversation." },
+  "privacy_invalid_json": { "message": "Privacy processing blocked invalid JSON in the provider configuration. Correct the extra-body, options or schema JSON before retrying." },
+  "privacy_identifier_key_invalid": { "message": "The local privacy identifier key is invalid. Privacy processing was blocked; restore the companion's local storage before retrying." },
   "privacy_web_input_title": { "message": "Additional text for your AI prompt" },
   "privacy_web_result_title": { "message": "Locally restored AI response" },
   "privacy_web_local_notice": { "message": "This is a ThunderAI Privacy extension window. Original values and locally restored answers are not written back into the provider's website or conversation. Detection can still miss personal data." },

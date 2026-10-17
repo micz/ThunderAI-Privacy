@@ -93,9 +93,13 @@ See [`claude-spec/`](claude-spec/) for detailed architecture docs.
 
 ## Testing / running
 
-There is no build step and no automated test suite. To exercise it manually you
-load it as a temporary add-on in Thunderbird (153+, 64-bit) alongside an API v1
-ThunderAI build. The manifest is authoritative for minimum compatibility.
+There is no build step. Run focused contract/lifecycle checks with Node.js 22+:
+`node --experimental-vm-modules --test tests/*.test.mjs` (see `tests/README.md`).
+These mock extension APIs and inference/model management, not detection quality.
+Focused deterministic algorithm/contract regressions are included; do not reinstate
+the removed broad detector-quality suite. For platform verification load this
+as a temporary add-on in Thunderbird (153+, 64-bit) alongside an API v1 ThunderAI
+build. The manifest is authoritative for minimum compatibility.
 
 ## Gotchas
 

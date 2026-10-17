@@ -2,6 +2,13 @@
  * SPDX-License-Identifier: GPL-3.0-or-later */
 // Pure redaction logic, separate from model loading so it can be tested offline.
 // A session owns its mappings: never persist these or send them to an API worker.
+import { restorePrivacyPlaceholders } from './mztap-placeholders.js';
+
+function unsupportedText(message) {
+    const error = new Error(message);
+    error.code = 'TEXT_UNSUPPORTED';
+    return error;
+}
 const EMAIL = /(?:"(?:[^"\\\r\n]|\\.)+"|[\p{L}\p{N}.!#$%&'*+/=?^_`{|}~-]+)@(?:[\p{L}\p{N}](?:[\p{L}\p{N}-]*[\p{L}\p{N}])?\.)+[\p{L}\p{N}](?:[\p{L}\p{N}-]*[\p{L}\p{N}])?/gu;
 const NUMERIC_CONTACT = /(?<![\p{L}\p{N}])(?:\+|00)?\d(?:[\d \t().-]*\d)?(?:[ \t]*(?:ext\.?|x|Durchwahl)[ \t]*\d+)?(?![\p{L}\p{N}])/giu;
 const CARD_ENDING = /\b(?:card|(?:credit|debit|payment)\s+card|(?:Kredit|Debit|Bank)karte)\b[^\n.!?]{0,80}?\b(?:ends?\s+(?:in|with)|ending\s+(?:in|with)|last\s+(?:four|4)\s+digits?\s*(?:are|is|:)?|endet\s+(?:auf|mit))\s*[:#]?\s*(\d{4})\b/giu;
@@ -85,7 +92,19 @@ async function planChunks(tokenizer, text, limit, checkCancelled) {
             if (encoded.length <= limit) { end = candidate; ids = encoded; low = candidate + 1; }
             else high = candidate - 1;
         }
-        if (end === start) throw new Error('Privacy filter: cannot safely split input.');
+        if (end === start) throw unsupportedText('Privacy filter: cannot safely split input.');
+        // Prefer a whole-word boundary near the largest fitting window. A word
+        // longer than the window still needs a Unicode-scalar-safe fallback.
+        const boundary = index => !/[\p{L}\p{N}\p{M}_]/u.test(text.slice(offsets[index - 1], offsets[index])) ||
+            !/[\p{L}\p{N}\p{M}_]/u.test(text.slice(offsets[index], offsets[index + 1]));
+        if (end < offsets.length - 1) {
+            const floor = Math.max(start + 1, end - 256, start + Math.floor((end - start) * 0.75));
+            for (let candidate = end; candidate >= floor; --candidate) {
+                if (!boundary(candidate)) continue;
+                const encoded = tokenizer.encode(text.slice(offsets[start], offsets[candidate]));
+                if (encoded.length <= limit) { end = candidate; ids = encoded; break; }
+            }
+        }
         chunks.push({ text: text.slice(offsets[start], offsets[end]), start: offsets[start], ids });
         if (end === offsets.length - 1) break;
         low = start + 1;
@@ -98,7 +117,13 @@ async function planChunks(tokenizer, text, limit, checkCancelled) {
                 high = candidate - 1;
             } else low = candidate + 1;
         }
-        if (next === end) throw new Error('Privacy filter: cannot safely overlap input chunks.');
+        if (next === end) throw unsupportedText('Privacy filter: cannot safely overlap input chunks.');
+        for (let candidate = next; candidate < end && candidate < next + 256; ++candidate) {
+            if (boundary(candidate) && tokenizer.encode(text.slice(offsets[candidate], offsets[end])).length <= overlap) {
+                next = candidate;
+                break;
+            }
+        }
         start = next;
         await yieldToWorker();
     }
@@ -107,12 +132,29 @@ async function planChunks(tokenizer, text, limit, checkCancelled) {
 
 async function classifyChunk(classifier, chunk) {
     const { ids } = chunk;
-    const decode = end => classifier.tokenizer.decode(ids.slice(0, end), { skip_special_tokens: true });
+    const decode = end => end === 0 ? '' : classifier.tokenizer.decode(ids.slice(0, end), { skip_special_tokens: true });
     const normalized = decode(ids.length);
-    // Some tokenizers trim edge whitespace on independently encoded windows.
-    // Permit only that known offset shift; never guess an internal alignment.
-    if (normalized.trim() !== chunk.text.trim()) throw new Error('Privacy filter: cannot safely align chunk text.');
-    const shift = chunk.text.match(/^\s*/)[0].length - normalized.match(/^\s*/)[0].length;
+    // Tokenizers can add a leading space and spaces after newlines, or collapse
+    // whitespace runs. Align only identical visible Unicode scalars back to the
+    // ORIGINAL text; never send the decoder's whitespace-normalized copy.
+    const visible = value => {
+        const result = [];
+        let offset = 0;
+        for (const char of value) {
+            if (!/\s/u.test(char)) result.push({ char, start: offset, end: offset + char.length });
+            offset += char.length;
+        }
+        return result;
+    };
+    const source = visible(chunk.text), decoded = visible(normalized);
+    if (source.length !== decoded.length || source.some((item, index) => item.char !== decoded[index].char)) {
+        throw unsupportedText('Privacy filter: cannot safely align chunk text.');
+    }
+    const starts = new Map(), ends = new Map();
+    decoded.forEach((item, index) => {
+        starts.set(item.start, source[index].start);
+        ends.set(item.end, source[index].end);
+    });
     const spans = [];
     for (const token of await classifier(chunk.text)) {
         if (token.entity === 'O') continue;
@@ -131,7 +173,7 @@ async function classifyChunk(classifier, chunk) {
     return spans.flatMap(({ label, start, end }) => {
         const before = decode(start), through = decode(end);
         if (!normalized.startsWith(before) || !normalized.startsWith(through) || through.length < before.length) {
-            throw new Error('Privacy filter: cannot safely align token boundaries.');
+            throw unsupportedText('Privacy filter: cannot safely align token boundaries.');
         }
         // NER can label isolated whitespace or a special token with no visible
         // text. Neither represents a value to mask. Keep rejecting invalid
@@ -140,10 +182,10 @@ async function classifyChunk(classifier, chunk) {
         const raw = normalized.slice(before.length, through.length);
         const value = raw.trim();
         if (!value) return [];
-        const localStart = before.length + raw.match(/^\s*/)[0].length + shift;
-        const localEnd = localStart + value.length;
-        if (localStart < 0 || localEnd > chunk.text.length || chunk.text.slice(localStart, localEnd) !== value) {
-            throw new Error('Privacy filter: cannot safely align chunk boundaries.');
+        const localStart = starts.get(before.length + raw.match(/^\s*/)[0].length);
+        const localEnd = ends.get(through.trimEnd().length);
+        if (!Number.isInteger(localStart) || !Number.isInteger(localEnd) || localStart < 0 || localEnd > chunk.text.length || localEnd <= localStart) {
+            throw unsupportedText('Privacy filter: cannot safely align chunk boundaries.');
         }
         return [{ label, start: chunk.start + localStart, end: chunk.start + localEnd, priority: 2 }];
     });
@@ -155,8 +197,7 @@ export function createRedactionSession(getClassifier, nonce = crypto.randomUUID(
     const counts = new Map();
     const knownValues = new Map();
     const prefix = `PII_${nonce}_`;
-    const pattern = new RegExp(`\\[${prefix}[A-Z0-9_]+\\]`, 'g');
-    const restore = text => text.replace(pattern, placeholder => values.get(placeholder) ?? placeholder);
+    const restore = text => restorePrivacyPlaceholders(text, values);
 
     async function mask(text, { onProgress = () => {}, isCancelled = () => false } = {}) {
         const checkCancelled = () => {
@@ -169,10 +210,9 @@ export function createRedactionSession(getClassifier, nonce = crypto.randomUUID(
         checkCancelled();
         if (typeof text !== 'string') throw new TypeError('Privacy filter expects text.');
         // Prevent user text from impersonating a placeholder owned by this session.
-        if (text.includes(prefix)) throw new Error('Input contains a reserved privacy placeholder.');
-        // The reply window represents line breaks as <br>. Feed real text to NER,
-        // but NEVER strip arbitrary <...> content: it can contain email addresses.
-        text = text.replace(/<br\s*\/?>/gi, '\n');
+        if (text.includes(prefix)) throw unsupportedText('Input contains a reserved privacy placeholder.');
+        // Classify and splice into the original text, including literal markup.
+        // Rewriting <br> here would silently change API prompts and mapped values.
         if (!text.trim()) return { text, restore };
         const classifier = await getClassifier();
         checkCancelled();
@@ -180,12 +220,8 @@ export function createRedactionSession(getClassifier, nonce = crypto.randomUUID(
         const limit = Math.min(2048, classifier.tokenizer.model_max_length ?? 2048,
             classifier.model.config.max_position_embeddings ?? 2048);
         if (!Number.isInteger(limit) || limit < 4) throw new Error('Privacy filter: invalid model token limit.');
-        const decoded = classifier.tokenizer.decode(ids, { skip_special_tokens: true });
-        // Preserve original edge whitespace when tokenization only trims it.
-        // Internal normalization still uses one full-input canonical text.
-        const normalized = decoded.trim() === text.trim() ? text : decoded;
-        const normalizedIds = classifier.tokenizer.encode(normalized);
-        const chunks = normalizedIds.length <= limit ? [{ text: normalized, ids: normalizedIds, start: 0 }] :
+        const normalized = text;
+        const chunks = ids.length <= limit ? [{ text: normalized, ids, start: 0 }] :
             await planChunks(classifier.tokenizer, normalized, limit, checkCancelled);
         const detected = [];
         for (const [index, chunk] of chunks.entries()) {

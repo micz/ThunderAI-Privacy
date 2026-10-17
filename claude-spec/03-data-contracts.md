@@ -21,6 +21,15 @@ Success: `{ok: true, protocol: 1, instanceId, callId, ...payload}`.
 Failure: `{ok: false, error: {code, message}}`. Errors never return unchanged input.
 Codes include `PROTOCOL_UNSUPPORTED`, `SESSION_EXPIRED`, `MODEL_NOT_READY`,
 `PLATFORM_UNSUPPORTED`, `CANCELLED`, `INVALID_REQUEST` and `INFERENCE_FAILED`.
+`TEXT_UNSUPPORTED` identifies deterministic tokenizer/chunking/reserved-prefix
+failures; editing the input is required rather than restarting Thunderbird.
+`UNRESTORED_PLACEHOLDER` blocks output when a recognizable fragment of the mapped
+session namespace remains after exact-token recognition in content, in all formats,
+before any result/view is returned. Display-only thinking/provider error strings
+restore known exact tokens once but leave changed fragments literal; they cannot
+block otherwise valid content. They are never inserted or parsed as response content.
+Changed tokens are never fuzzily matched to originals. It cannot detect arbitrary
+model rewrites that erase/corrupt the namespace itself.
 
 Input is `{message, instructions, extraBody}`: a string message plus maps of string
 provider instructions and serialized extra-body JSON. The companion preserves the
@@ -28,6 +37,13 @@ map keys. It never receives provider credentials/configuration through this enve
 Output is `{content, thinking, error?}` with string fields. The after hook validates
 opaque `context: {token}` against the original request in the session. Formats are
 `text`, `json` (JSON-string-safe restoration) and `html` (escaped originals).
+JSON restoration accepts every valid root, including arrays and standalone strings,
+and separately restores fenced blocks. String literals are escaped without changing
+numeric spelling or formatting; ordinary summaries/translations retain text fallback.
+Invalid extra-body/options/schema JSON is rejected with `INVALID_JSON`, never
+returned unmasked. Cache keys and safety identifiers are installation-keyed HMAC
+pseudonyms, not per-session placeholders: identical field/value pairs remain stable
+across sessions/restarts, and top-level JSON overrides follow the same policy.
 Optional `view: {original: string, diff: boolean}` on `after` opens the restored
 result/diff in Privacy's own window. `collectInput` accepts `[{info: string}]`, opens
 a companion-owned input form and returns string `values` for ThunderAI to assemble
@@ -53,6 +69,14 @@ persisted, returned to ThunderAI or sent to providers. One shared inference work
 uses isolated redaction sessions. Disposing a session cancels its queued work without
 stopping peers. Sessions expire after 24 h idle; the worker closes 60 s after its last
 lease is released. Restart invalidates old IDs; ThunderAI must start a fresh chat.
+Only the latest prepared request/context is retained per session. A new preparation
+retires the previous context, including when replacement preparation fails. Repeated
+restoration/previews of the latest request remain supported. Conversation-wide
+mappings are not retired with contexts, so follow-ups still restore earlier values.
+Pending calls are keyed by `callId`; cancellation must match that call's `requestId`.
+Cancellation flags exist only until their queued/in-flight calls settle. Late or
+unknown cancellations retain no tombstones, and cancelling a queued call does not
+interrupt another call's inference. Disposing clears all session bookkeeping/views.
 
 Explicit deactivation affects new sessions; existing ones retain restoration.
 Unexpected disconnect/uninstall is not an instruction to bypass active processing.
@@ -66,9 +90,16 @@ Only this extension's pages may call `privacy.getState`, `privacy.setEnabled`,
 in local storage, not sync. Enabling requires a supported 64-bit platform, complete
 model cache and successful registration with ThunderAI. Model deletion closes active
 sessions but leaves activation unchanged: requests block rather than bypass filtering.
+Settings reads/mutations are serialized across extension windows, including activation
+registration/rollback and model deletion. Discovery/new-session creation waits for
+the settings queue, so it never observes provisional activation. Existing hooks and
+cancellation remain independent of that queue. Failed storage writes do not change
+the in-memory setting; rejected operations do not poison the queue. A failed disable
+announcement does not undo an explicitly persisted deactivation: later discovery
+reports disabled, while existing sessions keep their mappings.
 
 Update both repositories when changing this contract. The corresponding ThunderAI
-spec is `claude-spec/08-ai-processing.md`.
+spec is `claude-spec/09-ai-processing.md`.
 
 `privacyView.data` and `privacyView.submit` are internal-only view messages, checked
 against the exact companion page URL and a random view ID. The background owns view

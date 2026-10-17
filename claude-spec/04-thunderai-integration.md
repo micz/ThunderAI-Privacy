@@ -31,4 +31,6 @@ Use fictional values and verify CPU/WebGPU, model download/partial cache/deletio
 long inputs, follow-up placeholder reuse, inline/dedicated thinking, JSON escaping,
 Web reply/replace/view/diff, cancellation/timeout, concurrent commands and companion
 restart/uninstall/deactivation. Inspect outgoing bodies and ensure restored originals
-do not return in provider history. No automated test suite is shipped.
+do not return in provider history. Focused JSON restoration and service/view
+lifecycle checks live in `tests/`; see `tests/README.md`. They mock extension APIs
+and inference/model management and do not replace Thunderbird/CPU/WebGPU testing.

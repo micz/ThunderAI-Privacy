@@ -1,5 +1,6 @@
 /* ThunderAI Privacy — Copyright (C) 2026 Mic (m@micz.it), Nico Martin (mail@nico.dev).
  * SPDX-License-Identifier: GPL-3.0-or-later */
+import { PRIVACY_MODEL_REVISION } from './mztap-privacy-config.js';
 let runtimePromise;
 
 // Used in extension pages AND dedicated workers. Workers have no browser.runtime
@@ -7,6 +8,11 @@ let runtimePromise;
 export function loadTransformersRuntime() {
     runtimePromise ??= import('./lib/transformers/transformers.min.js').then(module => {
         module.env.allowLocalModels = false;
+        module.env.allowRemoteModels = false;
+        // 4.3.1's registry/pipeline preflight helpers do not consistently forward
+        // revision to config/tokenizer metadata discovery. Lock the URL template
+        // too, so even those requests cannot consult a floating main revision.
+        module.env.remotePathTemplate = `{model}/resolve/${PRIVACY_MODEL_REVISION}/`;
         module.env.useBrowserCache = true;
         module.env.useWasmCache = false;
         module.env.backends.onnx.wasm.wasmPaths = {

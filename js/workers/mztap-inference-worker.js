@@ -1,7 +1,7 @@
 /* ThunderAI Privacy — Copyright (C) 2026 Mic (m@micz.it), Nico Martin (mail@nico.dev).
  * SPDX-License-Identifier: GPL-3.0-or-later */
 import { loadTransformersRuntime, supportsWebGpuFp16 } from '../mztap-transformers-runtime.js';
-import { PRIVACY_MODEL, PRIVACY_TASK as TASK } from '../mztap-privacy-config.js';
+import { PRIVACY_MODEL, PRIVACY_MODEL_REVISION, PRIVACY_TASK as TASK } from '../mztap-privacy-config.js';
 import { createRedactionSession } from '../mztap-privacy-redaction.js';
 
 let optionsPromise;
@@ -11,11 +11,11 @@ const getOptions = () => optionsPromise ??= selectPrivacyBackend();
 
 async function selectPrivacyBackend() {
     if (await supportsWebGpuFp16()) {
-        return { dtype: 'fp16', device: 'webgpu' };
+        return { dtype: 'fp16', device: 'webgpu', revision: PRIVACY_MODEL_REVISION };
     }
     // This model's fp16 export stores half-precision weights but computes in
     // fp32, including on WASM. Both backends can use the same cached artifact.
-    return { dtype: 'fp16', device: 'wasm' };
+    return { dtype: 'fp16', device: 'wasm', revision: PRIVACY_MODEL_REVISION };
 }
 
 async function loadPrivacyRuntime() {
@@ -31,7 +31,7 @@ async function isDownloaded() {
     const options = await getOptions();
     const { ModelRegistry, env } = await loadPrivacyRuntime();
     const cache = await caches.open(env.cacheKey);
-    const prefix = `${env.remoteHost}${PRIVACY_MODEL}/resolve/main/`;
+    const prefix = `${env.remoteHost}${PRIVACY_MODEL}/resolve/${PRIVACY_MODEL_REVISION}/`;
     // 4.3.1 registry discovery can omit tokenizer files when metadata is missing.
     // Require them locally before discovery to avoid network access/incomplete
     // cache acceptance. Recheck these URL keys whenever Transformers.js changes.
@@ -49,7 +49,7 @@ async function getClassifier() {
             throw error;
         }
         const [{ pipeline }, options] = await Promise.all([loadPrivacyRuntime(), getOptions()]);
-        return pipeline(TASK, PRIVACY_MODEL, options);
+        return pipeline(TASK, PRIVACY_MODEL, { ...options, local_files_only: true });
     })().catch(error => { classifierPromise = null; throw error; });
     return classifierPromise;
 }
@@ -78,22 +78,32 @@ async function handle({ id, command, text, sessionId, maskId }) {
             return true;
         case 'size': {
             const options = await getOptions();
-            const { ModelRegistry } = await loadPrivacyRuntime();
-            const files = await ModelRegistry.get_pipeline_files(TASK, PRIVACY_MODEL, options);
-            const metadata = await Promise.all(files.map(file => ModelRegistry.get_file_metadata(PRIVACY_MODEL, file)));
-            if (metadata.some(file => !file.exists || !Number.isFinite(file.size))) {
-                throw new Error('Model files or download sizes are not available yet.');
+            const { ModelRegistry, env } = await loadPrivacyRuntime();
+            env.allowRemoteModels = true;
+            try {
+                const files = await ModelRegistry.get_pipeline_files(TASK, PRIVACY_MODEL, options);
+                const metadata = await Promise.all(files.map(file => ModelRegistry.get_file_metadata(PRIVACY_MODEL, file, options)));
+                if (metadata.some(file => !file.exists || !Number.isFinite(file.size))) {
+                    throw new Error('Model files or download sizes are not available yet.');
+                }
+                return metadata.reduce((size, file) => size + file.size, 0);
+            } finally {
+                env.allowRemoteModels = false;
             }
-            return metadata.reduce((size, file) => size + file.size, 0);
         }
         case 'download': {
             const options = await getOptions();
-            const { pipeline } = await loadPrivacyRuntime();
-            const classifier = await pipeline(TASK, PRIVACY_MODEL, { ...options,
-                progress_callback: info => postMessage({ id, event: 'progress', info }),
-            });
-            await classifier.dispose();
-            return true;
+            const { pipeline, env } = await loadPrivacyRuntime();
+            env.allowRemoteModels = true;
+            try {
+                const classifier = await pipeline(TASK, PRIVACY_MODEL, { ...options,
+                    progress_callback: info => postMessage({ id, event: 'progress', info }),
+                });
+                await classifier.dispose();
+                return true;
+            } finally {
+                env.allowRemoteModels = false;
+            }
         }
         case 'mask': {
             const entry = sessions.get(sessionId);

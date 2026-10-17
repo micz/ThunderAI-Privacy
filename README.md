@@ -50,6 +50,27 @@ Activation requires a compatible ThunderAI. If the companion disappears while ac
 ThunderAI blocks rather than silently sending unfiltered data. Explicitly disable
 filtering in Privacy before removing it if you want to resume unprocessed requests.
 Model caches are extension-local: an older built-in ThunderAI cache is not shared.
+The model is pinned to an immutable revision (see `VENDORS.md`). Old floating-main
+downloads must be downloaded again explicitly. If Thunderbird evicts model cache
+files, requests block until the model is downloaded again; filtering is not disabled.
+
+### Disabling or uninstalling
+
+Disable filtering in Privacy's settings **before** disabling/removing the add-on
+if you want ThunderAI to resume unprocessed new requests. If an active companion
+disappears unexpectedly, ThunderAI keeps requests blocked; reinstall/re-enable
+Privacy and explicitly disable filtering to clear that requirement. There is no
+second activation switch in ThunderAI.
+
+Nonempty provider prompt-cache/safety identifiers are pseudonymized with a local
+installation key, preserving stability without sending their original values.
+Clearing Privacy's storage changes those pseudonyms.
+
+Recognizable changed or incomplete privacy placeholders in AI response content block
+restoration/insertion with a specific error instead of guessing personal values.
+This does not guarantee recognition if the AI rewrites the namespace itself.
+Display-only reasoning and provider errors restore exact tokens but leave changed
+fragments literal, without blocking otherwise usable content.
 
 <br>
 

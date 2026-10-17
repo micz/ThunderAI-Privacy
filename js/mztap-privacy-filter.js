@@ -1,6 +1,7 @@
 /* ThunderAI Privacy — Copyright (C) 2026 Mic (m@micz.it), Nico Martin (mail@nico.dev).
  * SPDX-License-Identifier: GPL-3.0-or-later */
 import { PrivacyClient } from './mztap-privacy-client.js';
+import { restorePrivacyPlaceholders } from './mztap-placeholders.js';
 
 export { PRIVACY_MODEL } from './mztap-privacy-config.js';
 
@@ -72,8 +73,7 @@ export function createPrivacySession({ shared = false } = {}) {
     const pendingMasks = new Set();
     const sessionId = crypto.randomUUID();
     const values = new Map();
-    const restore = text => text.replace(/\[PII_[0-9a-f]{8}_[A-Z0-9_]+\]/g,
-        placeholder => values.get(placeholder) ?? placeholder);
+    const restore = text => restorePrivacyPlaceholders(text, values);
     return {
         async mask(text, { onProgress = () => {} } = {}) {
             if (disposed) throw new Error('Privacy session is closed');
@@ -128,20 +128,46 @@ export function createPrivacySession({ shared = false } = {}) {
     };
 }
 
-// Restore JSON string literals with JSON escaping, including fenced JSON in
-// special-command output. Original quotes/newlines must not corrupt its syntax.
+// Restore string literals without reserializing numbers or changing formatting.
+// All JSON roots are valid, including arrays and standalone strings. Special
+// commands also return fenced JSON or ordinary summaries/translations.
 export function restorePrivacyResponse(text, session) {
-    const start = text.indexOf('{');
-    const end = text.lastIndexOf('}');
-    if (start >= 0 && end >= start) {
-        const json = text.slice(start, end + 1);
+    function restoreJSON(json) {
         try {
             JSON.parse(json);
-            const restored = json.replace(/"(?:\\.|[^"\\])*"/g,
-                literal => JSON.stringify(session.restore(JSON.parse(literal))));
-            return session.restore(text.slice(0, start)) + restored + session.restore(text.slice(end + 1));
         } catch {
-            // Non-JSON tasks (summaries/translations) use ordinary text restoration.
+            return undefined;
+        }
+        return json.replace(/"(?:\\.|[^"\\])*"/g,
+            literal => JSON.stringify(session.restore(JSON.parse(literal))));
+    }
+    const whole = restoreJSON(text);
+    if (whole !== undefined) return whole;
+
+    // Keep Markdown wrappers and prose outside JSON as ordinary text. Process
+    // each fence separately, so multiple blocks cannot be mistaken for one root.
+    const fences = [...text.matchAll(/```(?:json)?[ \t]*\r?\n([\s\S]*?)```/gi)];
+    if (fences.length) {
+        let end = 0;
+        const parts = [];
+        for (const match of fences) {
+            parts.push(session.restore(text.slice(end, match.index)));
+            const start = match[0].indexOf('\n') + 1;
+            parts.push(match[0].slice(0, start), restoreJSON(match[1]) ?? session.restore(match[1]), '```');
+            end = match.index + match[0].length;
+        }
+        parts.push(session.restore(text.slice(end)));
+        return parts.join('');
+    }
+
+    // Preserve support for a single object/array embedded in explanatory prose.
+    const candidates = [['{', '}'], ['[', ']']].map(([open, close]) => ({
+        start: text.indexOf(open), end: text.lastIndexOf(close)
+    })).filter(({ start, end }) => start >= 0 && end >= start).sort((a, b) => a.start - b.start);
+    for (const { start, end } of candidates) {
+        const restored = restoreJSON(text.slice(start, end + 1));
+        if (restored !== undefined) {
+            return session.restore(text.slice(0, start)) + restored + session.restore(text.slice(end + 1));
         }
     }
     return session.restore(text);

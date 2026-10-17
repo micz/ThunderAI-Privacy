@@ -2,7 +2,12 @@
  * SPDX-License-Identifier: GPL-3.0-or-later */
 const pages = new Map();
 const pageURL = browser.runtime.getURL('pages/privacy-web/index.html');
-const cancelled = () => new Error(browser.i18n.getMessage('privacy_cancelled'));
+function viewError(code, key) {
+    const error = new Error(browser.i18n.getMessage(key) || key);
+    error.code = code;
+    return error;
+}
+const cancelled = () => viewError('CANCELLED', 'privacy_cancelled');
 
 function close(id, page) {
     pages.delete(id);
@@ -17,7 +22,7 @@ export function closePrivacyViews(record, requestId) {
 }
 
 async function open(record, requestId, data, callbacks = {}) {
-    if (record.disposed || record.cancelled.has(requestId)) throw cancelled();
+    if (record.disposed || [...record.calls.values()].some(call => call.requestId === requestId && call.cancelled)) throw cancelled();
     const id = crypto.randomUUID();
     const page = { record, requestId, data, ...callbacks };
     pages.set(id, page);
@@ -35,7 +40,7 @@ async function open(record, requestId, data, callbacks = {}) {
 
 export function collectPrivacyInput(record, requestId, fields) {
     if (!Array.isArray(fields) || fields.length === 0 || fields.some(field => typeof field?.info !== 'string')) {
-        throw new Error(browser.i18n.getMessage('privacy_invalid_request'));
+        throw viewError('INVALID_REQUEST', 'privacy_invalid_request');
     }
     return new Promise((resolve, reject) => {
         void open(record, requestId, { kind: 'input', fields }, { resolve, reject }).catch(reject);
@@ -44,7 +49,7 @@ export function collectPrivacyInput(record, requestId, fields) {
 
 export function showPrivacyResult(record, requestId, text, view) {
     if (typeof view.original !== 'string' || typeof view.diff !== 'boolean') {
-        throw new Error(browser.i18n.getMessage('privacy_invalid_request'));
+        throw viewError('INVALID_REQUEST', 'privacy_invalid_request');
     }
     return open(record, requestId, { kind: view.diff ? 'diff' : 'result', text, original: view.original });
 }
@@ -59,7 +64,7 @@ export function initializePrivacyViews() {
             if (message.action === 'privacyView.data') return { ok: true, ...page.data };
             if (page.data.kind !== 'input' || !Array.isArray(message.values) ||
                 message.values.length !== page.data.fields.length || message.values.some(value => typeof value !== 'string')) {
-                throw new Error(browser.i18n.getMessage('privacy_invalid_request'));
+                throw viewError('INVALID_REQUEST', 'privacy_invalid_request');
             }
             pages.delete(message.id);
             page.resolve(message.values);
