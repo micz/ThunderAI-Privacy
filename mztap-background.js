@@ -1,0 +1,45 @@
+/*
+ *  ThunderAI Privacy [https://micz.it/thunderbird-addon-thunderai/#privacy]
+ *  Copyright (C) 2026  Mic (m@micz.it), Nico Martin (mail@nico.dev)
+
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+import { tapLogger } from "./js/mztap-logger.js";
+
+const PRIVACY_VERSION = browser.runtime.getManifest().version;
+
+// First install
+browser.runtime.onInstalled.addListener(({reason}) => {
+  if (reason == "install") {
+    // do what you need
+  }
+});
+
+let prefs_init = await browser.storage.sync.get({do_debug: false});
+let tapLog = new tapLogger("mztap-background",prefs_init.do_debug);
+
+// Listen for messages from ThunderAI
+browser.runtime.onMessageExternal.addListener((message, sender, sendResponse) => {
+  tapLog.log("Message received:", message);
+  tapLog.log("Sender info:", sender);
+
+  switch (message.action) {
+    case "checkPresence":
+      return Promise.resolve(PRIVACY_VERSION);
+      break;
+  }
+
+  return true;
+});

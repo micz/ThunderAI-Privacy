@@ -1,0 +1,30 @@
+{
+    "manifest_version": 2,
+    "name": "ThunderAI Privacy",
+    "description": "__MSG_extensionDescription__",
+    "version": "1.0.0",
+    "author": "Mic (m@micz.it), Nico Martin (mail@nico.dev)",
+    "homepage_url": "https://micz.it/thunderbird-addon-thunderai/#privacy",
+    "browser_specific_settings": {
+        "gecko": {
+            "id": "thunderai-privacy@micz.it",
+            "strict_min_version": "153.0"
+        }
+    },
+    "permissions": [
+        "storage"
+    ],
+    "background": {
+        "scripts": ["mztap-background.js"],
+        "type": "module"
+    },
+    "options_ui":{
+        "page": "options/mztap-options.html"
+    },
+    "icons": {
+        "64": "images/icon.png",
+        "32": "images/icon-32px.png",
+        "16": "images/icon-16px.png"
+    },
+    "default_locale": "en"
+}
