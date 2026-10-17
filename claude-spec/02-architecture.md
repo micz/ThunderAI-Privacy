@@ -45,6 +45,11 @@ Inference passes `local_files_only: true`; download remains an explicit action.
 Remote model access is disabled in the runtime except during serialized size and
 download commands, with a `finally` reset even on failure. This also guards runtime
 preflight helpers that do not forward `local_files_only` consistently.
+Transformers.js requires `allowLocalModels: true` even for cache-only reads.
+Filesystem access is disabled, and a guarded `env.fetch` rejects every local path
+and every offline request. During explicit size/download operations it accepts
+only URLs under the pinned model revision. Thus enabling the library's local-source
+flag permits cache reads, not actual filesystem or extension-local model fetching.
 
 Long inputs have no total privacy-token cap: windows contain at most 2048 model
 tokens including special tokens, with up to 128 overlap tokens, preferred whole-word

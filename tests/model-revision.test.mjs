@@ -16,7 +16,9 @@ async function synthetic(context, exports) {
 
 test('the actual runtime wrapper locks URLs as well as model revision options', async () => {
     const context = vm.createContext({ URL });
-    const env = { backends: { onnx: { wasm: {} } } };
+    const fetched = [];
+    const env = { remoteHost: 'https://huggingface.co/', fetch: async url => { fetched.push(url); return 'fetched'; },
+        backends: { onnx: { wasm: {} } } };
     const bundle = await synthetic(context, { env });
     const constants = await synthetic(context, config);
     const url = new URL('../js/mztap-transformers-runtime.js', import.meta.url);
@@ -27,8 +29,17 @@ test('the actual runtime wrapper locks URLs as well as model revision options', 
     await module.link(() => constants); await module.evaluate();
     await module.namespace.loadTransformersRuntime();
     assert.equal(env.remotePathTemplate, `{model}/resolve/${config.PRIVACY_MODEL_REVISION}/`);
-    assert.equal(env.allowLocalModels, false);
+    assert.equal(env.allowLocalModels, true);
     assert.equal(env.allowRemoteModels, false);
+    assert.equal(env.useFS, false);
+    const pinned = `${env.remoteHost}${config.PRIVACY_MODEL}/resolve/${config.PRIVACY_MODEL_REVISION}/config.json`;
+    assert.throws(() => env.fetch(pinned), /blocked/);
+    env.allowRemoteModels = true;
+    assert.throws(() => env.fetch('/models/config.json'), /blocked/);
+    assert.throws(() => env.fetch(pinned.replace(config.PRIVACY_MODEL_REVISION, 'main')), /blocked/);
+    assert.throws(() => env.fetch(pinned.replace('config.json', '../config.json')), /blocked/);
+    assert.equal(await env.fetch(pinned), 'fetched');
+    assert.deepEqual(fetched, [pinned]);
 });
 
 async function workerHarness({ mainOnly = false } = {}) {
@@ -115,4 +126,48 @@ test('failed size/download operations restore the offline guard before any later
     assert.match((await h.request('download')).error.message, /Download failed/);
     assert.equal(h.env.allowRemoteModels, false);
     assert.equal((await h.request('cached')).result, true);
+});
+
+test('real vendored runtime accepts cache-only configuration loads and rejects cache misses offline', async () => {
+    // Exercise the actual 4.3.1 loader, not the worker mock: this catches its
+    // source-configuration validation before it even consults the cache.
+    const bundle = await import('../js/lib/transformers/transformers.min.js');
+    // Node selects its native backend; supply only the browser WASM settings
+    // object expected by our wrapper. No ONNX session or weights are loaded.
+    bundle.env.backends.onnx.wasm ??= {};
+    const { loadTransformersRuntime } = await import('../js/mztap-transformers-runtime.js');
+    const { env, AutoConfig, ModelRegistry } = await loadTransformersRuntime();
+    const saved = { useBrowserCache: env.useBrowserCache, useFSCache: env.useFSCache,
+        useCustomCache: env.useCustomCache, customCache: env.customCache };
+    const configURL = `${env.remoteHost}${config.PRIVACY_MODEL}/resolve/${config.PRIVACY_MODEL_REVISION}/config.json`;
+    let present = true;
+    const matches = [];
+    env.useBrowserCache = false;
+    env.useFSCache = false;
+    env.useCustomCache = true;
+    env.customCache = {
+        async match(url) {
+            matches.push(url);
+            if (present && url === configURL) return new Response(JSON.stringify({ model_type: 'modernbert' }));
+            if (present && url.startsWith(configURL.slice(0, -'config.json'.length))) {
+                return new Response('{}', { headers: { 'content-length': '2' } });
+            }
+        },
+        async put() { throw new Error('Cache-only loading must not download/cache anything'); }
+    };
+    try {
+        const options = { revision: config.PRIVACY_MODEL_REVISION, local_files_only: true };
+        const loaded = await AutoConfig.from_pretrained(config.PRIVACY_MODEL, options);
+        assert.equal(loaded.model_type, 'modernbert');
+        assert.ok(matches.includes(configURL));
+        assert.equal(await ModelRegistry.is_pipeline_cached(config.PRIVACY_TASK, config.PRIVACY_MODEL,
+            { ...options, dtype: 'fp16', device: 'wasm' }), true);
+        present = false;
+        assert.equal(await ModelRegistry.is_pipeline_cached(config.PRIVACY_TASK, config.PRIVACY_MODEL,
+            { ...options, dtype: 'fp16', device: 'wasm' }), false);
+        await assert.rejects(AutoConfig.from_pretrained(config.PRIVACY_MODEL, options), /not found locally/);
+        assert.equal(env.allowRemoteModels, false);
+    } finally {
+        Object.assign(env, saved);
+    }
 });

@@ -11,6 +11,9 @@ contracts, model-revision propagation and the actual service/view modules with
 mocked extension APIs and inference/model management. Each service test gets an
 isolated VM, preferences and session state. They cover settings ordering/rollback,
 deletion, context retirement, cancellation, disposal and companion-owned windows.
+The model-revision checks also exercise the actual vendored configuration/cache
+loader with synthetic cached files, catching source-flag validation regressions
+without fetching model files or creating an ONNX inference session.
 Focused redaction regressions use a Unicode-scalar tokenizer and fixed predictions
 to exercise chunking/alignment, rule/partial-span interactions, repetition and
 literal markup preservation. These are deterministic correctness checks, not the
