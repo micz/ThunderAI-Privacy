@@ -8,7 +8,7 @@ import { dirname, join } from 'node:path';
 import { createRedactionSession } from '../js/mztap-privacy-redaction.js';
 
 // Optional offline fixture: no network access or inference weights. Hashes bind
-// both files to the model revision recorded in VENDORS.md, not floating main.
+// both files to the model revision recorded in VENDORS_INFO.md, not floating main.
 const fixture = process.env.PRIVACY_TOKENIZER_PATH;
 test('pinned real tokenizer: whitespace/Unicode alignment and safe failure', {
     skip: !fixture && 'Set PRIVACY_TOKENIZER_PATH to the pinned tokenizer.json'

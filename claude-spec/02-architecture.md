@@ -31,7 +31,7 @@ queued/in-flight call records. Context retirement never clears conversation mapp
 - `mztap-views.js` and `pages/privacy-web/`: companion-owned custom-input, restored
   result and diff windows, with session-scoped cleanup and internal sender checks.
 - `mztap-transformers-runtime.js`: lazy bundled Transformers.js/ONNX Runtime loading.
-  No executable assets are downloaded. See `VENDORS.md` for versions/licenses/hashes.
+  No executable assets are downloaded. See `VENDORS_INFO.md` for versions/licenses/hashes.
 
 The model is `onnx-community/nym-pii-multilingual-ONNX`. A WebGPU adapter supporting
 `shader-f16` selects GPU; otherwise single-threaded WASM runs on CPU. Both backends
@@ -39,7 +39,7 @@ use the same fp16-weight model with fp32 computation. GPU inference failure bloc
 instead of retrying unpredictably on CPU. Unsupported 32-bit platforms are rejected
 before inference/model download. The manifest currently requires Thunderbird 153.0.
 The immutable model revision is defined in `mztap-privacy-config.js`; provenance
-hashes are recorded in `VENDORS.md`. Pipeline/registry options and the runtime URL
+hashes are recorded in `VENDORS_INFO.md`. Pipeline/registry options and the runtime URL
 template both pin it (4.3.1 preflight discovery does not always propagate options).
 Inference passes `local_files_only: true`; download remains an explicit action.
 Remote model access is disabled in the runtime except during serialized size and

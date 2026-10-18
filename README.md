@@ -50,7 +50,7 @@ Activation requires a compatible ThunderAI. If the companion disappears while ac
 ThunderAI blocks rather than silently sending unfiltered data. Explicitly disable
 filtering in Privacy before removing it if you want to resume unprocessed requests.
 Model caches are extension-local: an older built-in ThunderAI cache is not shared.
-The model is pinned to an immutable revision (see `VENDORS.md`). Old floating-main
+The model is pinned to an immutable revision (see `VENDORS_INFO.md`). Old floating-main
 downloads must be downloaded again explicitly. If Thunderbird evicts model cache
 files, requests block until the model is downloaded again; filtering is not disabled.
 

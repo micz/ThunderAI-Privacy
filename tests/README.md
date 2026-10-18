@@ -22,7 +22,7 @@ removed detector-quality corpus. They do not download a tokenizer or model weigh
 ## Optional real-tokenizer check
 
 Place `tokenizer.json` and `tokenizer_config.json` from the immutable revision in
-`VENDORS.md` in the same local directory, then run:
+`VENDORS_INFO.md` in the same local directory, then run:
 
 ```sh
 PRIVACY_TOKENIZER_PATH=/path/to/tokenizer.json node --experimental-vm-modules --test tests/*.test.mjs
