@@ -53,13 +53,14 @@ test('ThunderAI unreachable or incompatible: getState says so, setEnabled fails,
 test('settingChanged from ThunderAI reaches the settings pages; malformed or foreign ones do not', async () => {
     const h = await serviceHarness();
     assert.equal((await h.external({ action: 'aiProcessing.settingChanged', protocol: 1, enabled: false, locked: true })).ok, true);
-    assert.deepEqual(JSON.parse(JSON.stringify(h.relayed)), [{ action: 'privacyState.changed', enabled: false, locked: true }]);
+    const pageStates = () => JSON.parse(JSON.stringify(h.relayed.filter(m => m.action === 'privacyState.changed')));
+    assert.deepEqual(pageStates(), [{ action: 'privacyState.changed', enabled: false, locked: true }]);
     for (const [message, sender] of [
         [{ action: 'aiProcessing.settingChanged', protocol: 1, enabled: 'no', locked: false }, undefined],
         [{ action: 'aiProcessing.settingChanged', protocol: 99, enabled: true, locked: false }, undefined],
         [{ action: 'aiProcessing.settingChanged', protocol: 1, enabled: true, locked: false }, { id: 'other@example.com' }],
     ]) assert.equal((await h.external(message, sender)).ok, false);
-    assert.equal(h.relayed.length, 1);
+    assert.equal(pageStates().length, 1);
 });
 
 test('setting changes serialize in arrival order', async () => {
@@ -90,6 +91,7 @@ test('model deletion disposes sessions immediately, serializes enable and gates 
     const h = await serviceHarness();
     await h.create();
     const prepared = await h.before({ requestId: 'old' });
+    h.main.enabled = false; // switched off after the session started
     const gate = deferred();
     h.controls.deleteModel = () => gate.promise;
     const deleting = h.settings({ action: 'privacy.deleteModel', confirmed: true });
@@ -105,11 +107,13 @@ test('model deletion disposes sessions immediately, serializes enable and gates 
     assert.equal((await enabling).error.code, 'MODEL_NOT_READY');
     assert.equal((await creating).ok, true, 'session creation is lazy; missing model blocks its first mask');
     assert.equal((await h.before({ sessionId: 'new' })).error.code, 'MODEL_NOT_READY');
-    assert.equal(h.main.enabled, true, 'deletion never silently deactivates protection');
+    assert.equal(h.main.enabled, false);
+    assert.equal(h.readiness.at(-1).ready, false, 'ThunderAI learns the model is gone');
+    assert.equal((await h.call('hello')).ready, false);
 });
 
 test('failed model deletion releases its guard and settings queue', async () => {
-    const h = await serviceHarness();
+    const h = await serviceHarness({ enabled: false });
     h.controls.deleteModel = async () => { throw new Error('Cache error'); };
     assert.equal((await h.settings({ action: 'privacy.deleteModel', confirmed: true })).ok, false);
     await h.create();
@@ -226,4 +230,64 @@ test('settings work does not delay cancellation of an existing session hook', as
     assert.equal((await active).error.code, 'CANCELLED');
     registration.resolve({ ok: true, protocol: 1, enabled: false, locked: false });
     assert.equal((await disabling).ok, true);
+});
+
+test('readiness: hello reports it, and startup announces it to ThunderAI and to the settings pages', async () => {
+    const h = await serviceHarness();
+    const hello = await h.call('hello');
+    assert.deepEqual([hello.ready, hello.downloading], [true, false]);
+    assert.deepEqual([h.readiness[0].protocol, h.readiness[0].ready, typeof h.readiness[0].instanceId], [1, true, 'string']);
+    assert.ok(h.relayed.some(m => m.action === 'privacyModel.changed' && m.ready === true));
+    const other = await serviceHarness({ enabled: false });
+    assert.equal(other.readiness.length, 1, 'announced once at startup, ready or not: ThunderAI learns the companion started');
+});
+
+test('a download started from ThunderAI runs in the background, reports progress and makes the model ready', async () => {
+    const h = await serviceHarness({ enabled: false });
+    h.controls.downloaded = false;
+    await h.settings({ action: 'privacy.deleteModel', confirmed: true });
+    assert.equal((await h.call('hello')).ready, false);
+    const gate = deferred();
+    let report;
+    h.controls.download = progress => { report = progress; return gate.promise; };
+    const started = await h.external({ action: 'aiProcessing.downloadModel', protocol: 1 });
+    assert.deepEqual([started.ok, started.downloading, started.ready], [true, true, false]);
+    report({ status: 'progress_total', progress: 41.7, loaded: 41, total: 100 });
+    report({ status: 'progress_total', progress: 41.9, loaded: 42, total: 100 }); // same percent: not re-sent
+    assert.deepEqual(h.readiness.filter(m => m.downloading).map(m => m.progress), [0, 41]);
+    assert.equal((await h.external({ action: 'aiProcessing.downloadModel', protocol: 1 })).downloading, true, 'a second request joins the running download');
+    assert.equal((await h.settings({ action: 'privacy.deleteModel', confirmed: true })).error.code, 'MODEL_BUSY');
+    gate.resolve();
+    await until(() => h.readiness.at(-1).ready);
+    assert.deepEqual([h.readiness.at(-1).downloading, (await h.call('hello')).ready], [false, true]);
+    assert.equal((await h.settings({ action: 'privacy.setEnabled', enabled: true })).enabled, true);
+});
+
+test('a failed download reports its error; without the host permission it does not start', async () => {
+    const h = await serviceHarness({ enabled: false });
+    h.controls.downloaded = false;
+    await h.settings({ action: 'privacy.deleteModel', confirmed: true });
+    h.controls.download = async () => { throw new Error('network down'); };
+    assert.equal((await h.settings({ action: 'privacy.download' })).ok, true);
+    await until(() => h.readiness.at(-1).error);
+    assert.deepEqual([h.readiness.at(-1).error, h.readiness.at(-1).ready], ['privacy_download_failed', false]);
+    h.controls.permission = false;
+    assert.equal((await h.external({ action: 'aiProcessing.downloadModel', protocol: 1 })).error.code, 'PERMISSION_REQUIRED');
+});
+
+test('the model cannot be deleted while ThunderAI\'s switch is on', async () => {
+    const h = await serviceHarness({ enabled: true });
+    const refused = await h.settings({ action: 'privacy.deleteModel', confirmed: true });
+    assert.deepEqual([refused.ok, refused.error.code], [false, 'PRIVACY_ACTIVE']);
+    assert.equal(h.controls.downloaded, true);
+    h.main.available = false; // an unreachable ThunderAI does not hold it back
+    assert.equal((await h.settings({ action: 'privacy.deleteModel', confirmed: true })).ok, true);
+});
+
+test('ThunderAI can open this add-on\'s settings page', async () => {
+    const h = await serviceHarness();
+    assert.equal((await h.external({ action: 'aiProcessing.openSettings', protocol: 1 })).ok, true);
+    assert.equal(h.openedSettings.length, 1);
+    assert.equal((await h.external({ action: 'aiProcessing.openSettings', protocol: 1 }, { id: 'other@example.com' })).ok, false);
+    assert.equal(h.openedSettings.length, 1);
 });

@@ -83,9 +83,12 @@ is returned unfiltered on the assumption that a provider parser will discard it.
 
 ## Options and model cache
 
-`options/mztap-privacy-options.js` manages activation, model status/size/download,
-confirmed deletion and sensitive diagnostics. The UI requests optional Hugging Face
-permissions from user gestures. Cache completeness requires tokenizer files plus
+`options/mztap-privacy-options.js` shows two steps: (1) the model (status, size, download
+progress, confirmed deletion, refused while the protection is on), (2) the switch that
+mirrors ThunderAI's, disabled until the model is ready; plus sensitive diagnostics. The
+download itself runs in the background (`startDownload()` in `mztap-service.js`), so
+it survives closing the page and ThunderAI can start it too; the Hugging Face hosts are
+required manifest permissions for that reason. Cache completeness requires tokenizer files plus
 the pinned runtime's pipeline cache check. There is no implicit download on inference.
 Deletion removes only this model's URL entries, not unrelated browser cache data.
 Checks accept only pinned-revision URL entries. Old floating-main downloads must

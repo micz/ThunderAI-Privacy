@@ -69,6 +69,7 @@ test('restored previews can repeat for the latest context and are closed on mode
         assert.equal(data.text, 'Alice');
         assert.equal(data.kind, count ? 'diff' : 'result');
     }
+    h.main.enabled = false; // the model goes only with the protection off
     await h.settings({ action: 'privacy.deleteModel', confirmed: true });
     assert.deepEqual(h.removed, h.windows.map(win => win.id));
     assert.deepEqual(h.counts(), []);

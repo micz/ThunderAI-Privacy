@@ -38,8 +38,10 @@ function dispatch(event, message, sender) {
 export async function serviceHarness({ enabled = true } = {}) {
     const local = { do_debug: false };
     const main = { enabled, locked: false, available: true };
-    const controls = { downloaded: true };
-    const settingRequests = [], relayed = [], engines = [], windows = [], removed = [], progress = [];
+    // `download`: (progress_callback) => promise, to drive a background download.
+    const controls = { downloaded: true, permission: true };
+    const settingRequests = [], relayed = [], readiness = [], openedSettings = [],
+        engines = [], windows = [], removed = [], progress = [];
     const extensionURL = 'moz-extension://privacy/';
     const browser = {
         i18n: { getMessage: key => key },
@@ -59,6 +61,7 @@ export async function serviceHarness({ enabled = true } = {}) {
             getManifest: () => ({ version: '1.0.0' }),
             getPlatformInfo: async () => ({ arch: 'x86-64' }),
             onMessage: event(), onMessageExternal: event(),
+            async openOptionsPage() { openedSettings.push(true); },
             async sendMessage(target, message) {
                 // The one-argument form reaches this add-on's own pages.
                 if (typeof target === 'object') {
@@ -76,6 +79,10 @@ export async function serviceHarness({ enabled = true } = {}) {
                     }
                     return { ok: true, protocol: 1, enabled: main.enabled, locked: main.locked };
                 }
+                if (message.action === 'aiProcessing.readinessChanged') {
+                    readiness.push(message);
+                    return { ok: true };
+                }
                 if (message.action === 'aiProcessing.progress') {
                     progress.push(message);
                     return { ok: true };
@@ -83,6 +90,7 @@ export async function serviceHarness({ enabled = true } = {}) {
                 throw new Error('Unexpected outgoing action');
             }
         },
+        permissions: { contains: async () => controls.permission },
         windows: {
             onRemoved: event(),
             async create(options) {
@@ -97,7 +105,8 @@ export async function serviceHarness({ enabled = true } = {}) {
     const context = vm.createContext({ browser, crypto: webcrypto, TextEncoder,
         console, URL, setTimeout, clearTimeout, setInterval: () => 0 });
     const mockFilter = new vm.SyntheticModule([
-        'createPrivacySession', 'restorePrivacyResponse', 'isPrivacyModelDownloaded', 'deletePrivacyModel'
+        'createPrivacySession', 'restorePrivacyResponse', 'isPrivacyModelDownloaded', 'deletePrivacyModel',
+        'downloadPrivacyModel', 'disposePrivacyModelManager'
     ], function () {
         this.setExport('createPrivacySession', () => {
             const engine = {
@@ -122,6 +131,11 @@ export async function serviceHarness({ enabled = true } = {}) {
         });
         this.setExport('restorePrivacyResponse', restorePrivacyResponse);
         this.setExport('isPrivacyModelDownloaded', async () => controls.downloaded);
+        this.setExport('downloadPrivacyModel', async progressCallback => {
+            if (controls.download) await controls.download(progressCallback);
+            controls.downloaded = true;
+        });
+        this.setExport('disposePrivacyModelManager', () => {});
         this.setExport('deletePrivacyModel', async () => {
             await controls.deleteModel?.();
             controls.downloaded = false;
@@ -165,7 +179,7 @@ export async function serviceHarness({ enabled = true } = {}) {
     const before = (fields = {}) => call('before', {
         requestId: webcrypto.randomUUID(), input: { message: 'Alice', instructions: {}, extraBody: {} }, ...fields
     });
-    return { browser, local, main, controls, settingRequests, relayed, engines, windows, removed, progress,
+    return { browser, local, main, controls, settingRequests, relayed, readiness, openedSettings, engines, windows, removed, progress,
         settings, external, call, create, before,
         counts: () => JSON.parse(JSON.stringify(module.namespace.retentionCounts())),
         view(action, win, fields = {}, senderURL = win.url) {

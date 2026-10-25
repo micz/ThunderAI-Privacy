@@ -12,7 +12,18 @@ h1 { font-size: 22px; margin: 0 0 24px; }
 .privacy_enable_row > div { min-width: 0; }
 .privacy_enable_label { font-weight: 600; }
 .mzta_help { color: var(--dim); font-size: 13px; line-height: 1.6; }
-#privacy_intro { margin: 5px 0 0; }
+#privacy_intro { margin: -12px 0 20px; }
+#privacy_switch_help, #privacy_enable_note { margin: 5px 0 0; }
+#privacy_enable_note, #privacy_delete_note { color: var(--warning); }
+#privacy_delete_note { margin: 8px 0 0; }
+/* Two numbered steps: the model, then the switch. A step not reachable yet is dimmed. */
+.privacy_step { margin-bottom: 22px; }
+.privacy_step h2 { display: flex; align-items: center; gap: 10px; font-size: 16px; margin: 0 0 12px; }
+.privacy_step_num { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid var(--accent); color: var(--accent); font-size: 13px; font-weight: 600; flex: none; }
+.privacy_step[data-state="done"] .privacy_step_num { background: var(--success); border-color: var(--success); color: #fff; }
+.privacy_step[data-state="blocked"] h2, .privacy_step[data-state="blocked"] .privacy_enable_label { color: var(--dim); }
+.privacy_step[data-state="blocked"] .privacy_step_num { border-color: var(--dim); color: var(--dim); }
+.privacy_step .privacy_enable_row { background: var(--field); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin: 0; }
 .mzta_switch { flex: none; display: inline-flex; }
 .mzta_switch input { position: absolute; opacity: 0; width: 0; height: 0; }
 .track { display: inline-block; width: 38px; height: 22px; border-radius: 20px; background: #8889; position: relative; cursor: pointer; }

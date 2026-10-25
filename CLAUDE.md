@@ -40,10 +40,11 @@ https://github.com/micz/ThunderAI-Privacy/issues
 2. ThunderAI sends a message to `thunderai-privacy@micz.it` with an `action`:
    - `checkPresence` → manifest version string.
    - `aiProcessing.*` → versioned async session/before/after/cancel/dispose hooks,
-     and `settingChanged` when ThunderAI's activation switch changes.
+     `settingChanged` when ThunderAI's activation switch changes, `downloadModel` and
+     `openSettings` from ThunderAI's options page.
 3. Privacy sends `getSetting` / `setSetting` (the activation switch lives in
-   ThunderAI; Privacy's toggle mirrors it) and progress to ThunderAI; both validate
-   exact IDs.
+   ThunderAI; Privacy's toggle mirrors it), `readinessChanged` (model ready /
+   downloading) and progress to ThunderAI; both validate exact IDs.
 
 The full contract is in [`claude-spec/03-data-contracts.md`](claude-spec/03-data-contracts.md).
 

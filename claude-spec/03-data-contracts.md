@@ -9,7 +9,9 @@ version string. Processing actions use `action: 'aiProcessing.<operation>'` and
 
 | Operation | Additional fields | Success payload |
 |---|---|---|
-| `hello` | none | version |
+| `hello` | none | version, ready, downloading, progress, loaded, total, error |
+| `downloadModel` | none | the same model fields; the download runs in the background |
+| `openSettings` | none | acknowledgement; opens this add-on's settings page |
 | `settingChanged` | enabled, locked (booleans) | acknowledgement; relayed to this add-on's pages as `privacyState.changed` |
 | `createSession` | instanceId, sessionId, callId | acknowledgement |
 | `before` | instanceId, sessionId, callId, requestId, input | input, context |
@@ -64,6 +66,27 @@ settings page shows as is. Each call is bounded to 5 s; an absent or slow Thunde
 `settingChanged` whenever the preference changes, whoever wrote it. ThunderAI
 discovers with `hello` before each new session, only while its switch is on.
 
+`readinessChanged` (`{protocol: 1, instanceId, ready, downloading, progress, loaded,
+total, error}`) goes to ThunderAI at startup, ready or not (ThunderAI's autodownload
+policy uses it to learn that this instance started), and whenever the model changes:
+download start, each new integer percent, end, deletion. The same fields go to this
+add-on's pages as `privacyModel.changed`.
+
+## Model readiness and download
+
+Readiness is cached in the background (supported platform, complete model cache, no
+deletion running): checked at startup (discovery waits for it), after a download and
+after a deletion, never on `hello`, so discovery starts no worker. The background closes
+its model worker after each check and download. A stale cache still blocks at the first
+mask (`MODEL_NOT_READY`).
+
+The Hugging Face hosts (`PRIVACY_MODEL_ORIGINS`) are required manifest permissions, so
+the download needs no user gesture and runs in the background, started by
+`privacy.download` (this add-on's page) or `downloadModel` (ThunderAI's button or its
+autodownload policy). A second request joins the running download. A failure is kept as
+`error` (`privacy_download_failed`) until the next attempt. Without the host permission
+the download does not start (`PERMISSION_REQUIRED`).
+
 `progress` includes protocol, instanceId, sessionId, requestId, callId and
 `progress: {phase, current, total}`. ThunderAI renews timeouts only for matching,
 monotonically advancing progress. Calls otherwise time out and request cancellation.
@@ -94,14 +117,16 @@ the switch is turned off (in either settings page).
 ## Internal settings
 
 Only this extension's pages may call `privacy.getState`, `privacy.setEnabled`,
-`privacy.setDebug` and `privacy.deleteModel` (requires `confirmed: true`). `do_debug`
+`privacy.setDebug`, `privacy.download` and `privacy.deleteModel` (requires `confirmed: true`). `do_debug`
 lives in local storage, not sync. `privacy.getState` adds ThunderAI's `enabled` and
 `locked` and `main_available` (false when `getSetting` fails: the switch is then shown
-off and disabled). `privacy.setEnabled` forwards to `setSetting` and returns ThunderAI's
+off and disabled), and the model fields as `model`. `privacy.setEnabled` forwards to `setSetting` and returns ThunderAI's
 `{enabled, locked}`. Enabling requires a supported 64-bit platform and a complete model
-cache, checked here before ThunderAI is asked; disabling is always forwarded. Model
-deletion closes active sessions but leaves activation unchanged: requests block rather
-than bypass filtering. Settings reads/mutations are serialized across extension windows,
+cache, checked here (a fresh readiness check) before ThunderAI is asked; disabling is
+always forwarded. Model deletion is refused while ThunderAI's switch is on
+(`PRIVACY_ACTIVE`) or a download runs (`MODEL_BUSY`); an unreachable ThunderAI does not
+hold it back, since a switch left on still blocks without the model. Deletion closes
+active sessions. Settings reads/mutations are serialized across extension windows,
 including activation requests and model deletion. Discovery/new-session creation waits
 for the settings queue, so it never races deletion. Existing hooks and cancellation
 remain independent of that queue. Failed storage writes do not change the in-memory

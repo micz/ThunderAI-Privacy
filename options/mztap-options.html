@@ -9,25 +9,33 @@
     <div id="miczRelNotes"><a href="mztap-release-notes.html">__MSG_prefs_OptionText_release_notes__</a></div>
     <main id="privacy_settings">
       <h1>ThunderAI Privacy</h1>
-      <div class="privacy_enable_row">
-        <div><label for="privacy_filter_enabled" class="privacy_enable_label">__MSG_privacy_enable__</label><p id="privacy_intro" class="mzta_help">__MSG_privacy_intro__ __MSG_privacy_switch_mirror__</p><p id="privacy_locked" class="mzta_help" hidden>__MSG_privacy_locked__</p></div>
-        <label class="mzta_switch"><input type="checkbox" id="privacy_filter_enabled" aria-describedby="privacy_intro" disabled><span class="track"></span></label>
-      </div>
-      <div class="privacy_model_card" role="group" aria-labelledby="privacy_model_label">
-        <div id="privacy_model_label" class="privacy_meta_label">__MSG_privacy_model_label__</div>
-        <code id="privacy_model"></code>
-        <dl class="privacy_model_meta">
-          <div><dt>__MSG_privacy_processing_label__</dt><dd id="privacy_backend"></dd></div>
-          <div><dt>__MSG_privacy_size_label__</dt><dd id="privacy_size">__MSG_privacy_size_unknown__</dd></div>
-        </dl>
-        <div class="privacy_actions">
-          <button id="privacy_download" class="btn_primary" disabled>__MSG_privacy_download__</button>
-          <button id="privacy_refresh">__MSG_privacy_refresh__</button>
-          <button id="privacy_delete" disabled>__MSG_privacy_delete__</button>
+      <p id="privacy_intro" class="mzta_help">__MSG_privacy_intro__</p>
+      <section class="privacy_step" id="privacy_step_model" data-state="current" aria-labelledby="privacy_step_model_title">
+        <h2 id="privacy_step_model_title"><span class="privacy_step_num" aria-hidden="true">1</span>__MSG_privacy_step_model__</h2>
+        <div class="privacy_model_card" role="group" aria-labelledby="privacy_model_label">
+          <div id="privacy_model_label" class="privacy_meta_label">__MSG_privacy_model_label__</div>
+          <code id="privacy_model"></code>
+          <dl class="privacy_model_meta">
+            <div><dt>__MSG_privacy_processing_label__</dt><dd id="privacy_backend"></dd></div>
+            <div><dt>__MSG_privacy_size_label__</dt><dd id="privacy_size">__MSG_privacy_size_unknown__</dd></div>
+          </dl>
+          <div class="privacy_actions">
+            <button id="privacy_download" class="btn_primary" disabled>__MSG_privacy_download__</button>
+            <button id="privacy_refresh">__MSG_privacy_refresh__</button>
+            <button id="privacy_delete" aria-describedby="privacy_delete_note" disabled>__MSG_privacy_delete__</button>
+          </div>
+          <p id="privacy_delete_note" class="mzta_help" hidden>__MSG_privacy_delete_disable_first__</p>
+          <progress id="privacy_progress" max="100" aria-label="__MSG_privacy_download__" hidden></progress>
+          <p id="privacy_status" role="status" aria-live="polite"></p>
         </div>
-        <progress id="privacy_progress" max="100" aria-label="__MSG_privacy_download__" hidden></progress>
-        <p id="privacy_status" role="status" aria-live="polite"></p>
-      </div>
+      </section>
+      <section class="privacy_step" id="privacy_step_enable" data-state="blocked" aria-labelledby="privacy_step_enable_title">
+        <h2 id="privacy_step_enable_title"><span class="privacy_step_num" aria-hidden="true">2</span>__MSG_privacy_step_enable__</h2>
+        <div class="privacy_enable_row">
+          <div><label for="privacy_filter_enabled" class="privacy_enable_label">__MSG_privacy_enable__</label><p id="privacy_switch_help" class="mzta_help">__MSG_privacy_switch_mirror__</p><p id="privacy_enable_note" class="mzta_help" hidden></p></div>
+          <label class="mzta_switch"><input type="checkbox" id="privacy_filter_enabled" aria-describedby="privacy_switch_help privacy_enable_note" disabled><span class="track"></span></label>
+        </div>
+      </section>
       <details class="privacy_details"><summary>__MSG_privacy_coverage_label__</summary><p class="mzta_help">__MSG_privacy_description__</p></details>
       <details class="privacy_details" id="privacy_diagnostics">
         <summary>__MSG_privacy_diagnostics_label__ <span class="privacy_sensitive_note">__MSG_privacy_sensitive_note__</span></summary>

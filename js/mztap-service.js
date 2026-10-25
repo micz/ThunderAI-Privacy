@@ -6,8 +6,11 @@ import {
     createPrivacySession,
     restorePrivacyResponse,
     isPrivacyModelDownloaded,
+    downloadPrivacyModel,
+    disposePrivacyModelManager,
     deletePrivacyModel
 } from './mztap-privacy-filter.js';
+import { PRIVACY_MODEL_ORIGINS } from './mztap-privacy-config.js';
 import { maskPrivacyExtraBody } from './mztap-extra-body.js';
 import { PRIVACY_PLACEHOLDER_INSTRUCTIONS } from './mztap-privacy-instructions.js';
 import {
@@ -55,8 +58,76 @@ function status() {
         ok: true,
         protocol: PROTOCOL,
         instanceId,
-        version: browser.runtime.getManifest().version
+        version: browser.runtime.getManifest().version,
+        ...modelStatus()
     };
+}
+
+// Model readiness, cached here so discovery never starts a worker. Refreshed at
+// startup, after a download and after a deletion; an evicted cache still blocks at
+// the first mask (MODEL_NOT_READY), never bypasses.
+const model = { ready: false, downloading: false, progress: null, loaded: null, total: null, error: null };
+function modelStatus() {
+    const { ready, downloading, progress, loaded, total, error } = model;
+    return { ready, downloading, progress, loaded, total, error };
+}
+function announceModel() {
+    const state = modelStatus();
+    void browser.runtime.sendMessage({ action: 'privacyModel.changed', ...state }).catch(() => {});
+    void browser.runtime.sendMessage(MAIN_ID, { action: 'aiProcessing.readinessChanged',
+        protocol: PROTOCOL, instanceId, ...state }).catch(() => {});
+}
+async function checkModel() {
+    try {
+        return (await getPlatformSupport()).supported && await isPrivacyModelDownloaded();
+    } finally {
+        // The background keeps no idle model worker around.
+        disposePrivacyModelManager();
+    }
+}
+async function refreshModel() {
+    if (model.downloading) return;
+    let readyNow = false;
+    try {
+        readyNow = !deleting && await checkModel();
+    } catch (error) {
+        logger.log(`Model check failed: ${error.message}`);
+    }
+    if (readyNow !== model.ready) {
+        model.ready = readyNow;
+        announceModel();
+    }
+}
+// Started from this add-on's settings page or from ThunderAI; it runs here, in the
+// background, so it survives closing either page. Not awaited by its callers.
+async function startDownload() {
+    if (model.downloading) return;
+    await assertPlatform();
+    if (deleting) fail('MODEL_NOT_READY', 'privacy_download_required');
+    if (!await browser.permissions.contains({ origins: PRIVACY_MODEL_ORIGINS })) {
+        fail('PERMISSION_REQUIRED', 'privacy_permission_required');
+    }
+    Object.assign(model, { downloading: true, progress: 0, error: null });
+    announceModel();
+    void downloadPrivacyModel(event => {
+        if (event.status !== 'progress_total') return;
+        const percent = Math.floor(event.progress);
+        if (percent === model.progress) return;
+        model.progress = percent;
+        model.loaded = event.loaded;
+        model.total = event.total;
+        announceModel();
+    }).then(() => {
+        model.ready = true;
+    }, error => {
+        logger.log(`Model download failed: ${error.message}`);
+        model.error = error.code === 'privacy_download_required' ? text('privacy_download_required') :
+            text('privacy_download_failed');
+    }).finally(() => {
+        disposePrivacyModelManager();
+        Object.assign(model, { downloading: false, progress: null, loaded: null, total: null });
+        announceModel();
+    });
 }
 // Activation is ThunderAI's ai_processing_enabled preference; this add-on only
 // reads and writes it. A refusal (a policy lock) keeps ThunderAI's code and message.
@@ -211,6 +282,15 @@ async function external(message) {
             enabled: message.enabled, locked: message.locked }).catch(() => {});
         return {};
     }
+    // ThunderAI's options page buttons and its autodownload policy.
+    if (message.action === 'aiProcessing.downloadModel') {
+        await startDownload();
+        return modelStatus();
+    }
+    if (message.action === 'aiProcessing.openSettings') {
+        await browser.runtime.openOptionsPage();
+        return {};
+    }
     // Discovery and new sessions must not race model deletion. Existing
     // hooks/cancellation never wait for settings.
     if (['aiProcessing.hello', 'aiProcessing.createSession'].includes(message.action)) {
@@ -292,15 +372,21 @@ async function external(message) {
 async function settings(message) {
     await ready;
     if (message.action === 'privacy.getState') {
-        return { ...prefs, ...await getPlatformSupport(), ...await mainSetting() };
+        return { ...prefs, ...await getPlatformSupport(), ...await mainSetting(), model: modelStatus() };
+    }
+    if (message.action === 'privacy.download') {
+        await startDownload();
+        return { model: modelStatus() };
     }
     if (message.action === 'privacy.setEnabled') {
         if (typeof message.enabled !== 'boolean') fail('INVALID_REQUEST', 'privacy_invalid_request');
         // Readiness is this add-on's to judge: ThunderAI is asked to switch on
-        // only once the platform and the model can actually process.
+        // only once the platform and the model can actually process. ThunderAI's
+        // own switch is disabled by the same readiness (hello's `ready`).
         if (message.enabled) {
             await assertPlatform();
-            if (!await isPrivacyModelDownloaded()) fail('MODEL_NOT_READY', 'privacy_download_required');
+            await refreshModel();
+            if (!model.ready) fail('MODEL_NOT_READY', 'privacy_download_required');
         }
         return await askMain('aiProcessing.setSetting', { enabled: message.enabled });
     }
@@ -312,14 +398,22 @@ async function settings(message) {
         return {};
     }
     if (message.action === 'privacy.deleteModel' && message.confirmed === true) {
+        if (model.downloading) fail('MODEL_BUSY', 'privacy_delete_downloading');
+        // The model goes only once the protection is off: deleting it must never leave
+        // ThunderAI switched on and blocked. An unreachable ThunderAI does not hold it
+        // back: with the model gone, a switch left on still blocks (fail-closed).
+        if ((await mainSetting()).enabled) fail('PRIVACY_ACTIVE', 'privacy_delete_disable_first');
         deleting = true;
+        model.ready = false;
+        announceModel();
         try {
             for (const id of sessions.keys()) dispose(id);
             await deletePrivacyModel();
         } finally {
             deleting = false;
+            await refreshModel();
         }
-        return {};
+        return { model: modelStatus() };
     }
     fail('INVALID_REQUEST', 'privacy_invalid_request');
 }
@@ -372,7 +466,12 @@ export function initializePrivacyService() {
         }
         return enqueueSettings(message).then(result => ({ ok: true, ...result }), errorResponse);
     });
-    settingsQueue = ready.catch(() => {});
+    // Discovery waits for the first readiness check. The announcement also tells a
+    // running ThunderAI that this instance started (its autodownload policy).
+    settingsQueue = ready.then(async () => {
+        model.ready = await checkModel().catch(() => false);
+        announceModel();
+    }).catch(() => {});
     setInterval(() => {
         for (const [id, record] of sessions) {
             if (!record.activeRequest && Date.now() - record.lastUsed > 86400000) dispose(id);

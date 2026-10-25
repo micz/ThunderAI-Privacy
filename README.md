@@ -45,10 +45,12 @@ Install both add-ons from the [ThunderAI add-on page](https://micz.it/thunderbir
 ### Development setup
 
 Load this repository's `manifest.json` and the sibling ThunderAI build as temporary
-add-ons. In ThunderAI Privacy settings, download the model and enable filtering.
-The switch is ThunderAI's "Use ThunderAI Privacy" option (advanced options); the
-toggle in Privacy's settings is the same switch, so activation requires a compatible
-ThunderAI. If the companion disappears while the switch is on, ThunderAI blocks rather
+add-ons. Download the model (step 1 of ThunderAI Privacy settings, or "Download the
+model" in ThunderAI's advanced options), then turn the protection on (step 2): it cannot
+be turned on before the model is ready. The switch is ThunderAI's "Use ThunderAI
+Privacy" option; the toggle in Privacy's settings is the same switch, so activation
+requires a compatible ThunderAI. Hugging Face access is a required permission, so the
+download needs no extra prompt and runs in the background. If the companion disappears while the switch is on, ThunderAI blocks rather
 than silently sending unfiltered data. Switch it off before removing Privacy if you
 want to resume unprocessed requests.
 Model caches are extension-local: an older built-in ThunderAI cache is not shared.
