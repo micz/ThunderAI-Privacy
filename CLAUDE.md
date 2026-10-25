@@ -39,8 +39,11 @@ https://github.com/micz/ThunderAI-Privacy/issues
    [`mztap-background.js`](mztap-background.js)).
 2. ThunderAI sends a message to `thunderai-privacy@micz.it` with an `action`:
    - `checkPresence` → manifest version string.
-   - `aiProcessing.*` → versioned async session/before/after/cancel/dispose hooks.
-3. Privacy sends registration and progress to ThunderAI; both validate exact IDs.
+   - `aiProcessing.*` → versioned async session/before/after/cancel/dispose hooks,
+     and `settingChanged` when ThunderAI's activation switch changes.
+3. Privacy sends `getSetting` / `setSetting` (the activation switch lives in
+   ThunderAI; Privacy's toggle mirrors it) and progress to ThunderAI; both validate
+   exact IDs.
 
 The full contract is in [`claude-spec/03-data-contracts.md`](claude-spec/03-data-contracts.md).
 
@@ -53,8 +56,8 @@ js/
   mztap-logger.js          tapLogger — debug logging gated on the do_debug pref
   mztap-i18n.js            __MSG_*__ DOM localization helper (vendored)
   mztap-options.js         Options-manager helper (vendored, MPL-2.0)
-  mztap-options-default.js Local defaults: do_debug/ privacy_filter_enabled false
-  mztap-service.js         Versioned hook service, companion-owned settings/sessions
+  mztap-options-default.js Local defaults: do_debug false (no activation flag)
+  mztap-service.js         Versioned hook service, mirrored switch, sessions
   mztap-privacy-*.js       Detection, mappings, model management and restoration
   workers/                Shared local inference worker
   lib/transformers/       Bundled JS/WASM runtime (see VENDORS_INFO.md)

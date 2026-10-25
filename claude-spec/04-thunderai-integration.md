@@ -4,7 +4,8 @@
 |---|---|
 | Menus, prompts, message extraction, providers/API credentials | ThunderAI |
 | Before/after hook dispatch, progress/Stop, processed provider history | ThunderAI |
-| Privacy activation/settings, model/runtime/downloads | Privacy |
+| Activation switch (`ai_processing_enabled`) | ThunderAI; Privacy's settings page mirrors it |
+| Readiness (platform, model), model/runtime/downloads, diagnostics | Privacy |
 | Detection, placeholders, mappings, response restoration | Privacy |
 | Web custom-input and processed-response views | Privacy extension pages |
 

@@ -17,7 +17,10 @@ import {
     closePrivacyViews
 } from './mztap-views.js';
 import { pseudonymizePrivacyIdentifier } from './mztap-identifiers.js';
-import { restorePrivacyPlaceholders, restoreExactPrivacyPlaceholders } from './mztap-placeholders.js';
+import {
+    restorePrivacyPlaceholders,
+    restoreExactPrivacyPlaceholders
+} from './mztap-placeholders.js';
 
 const MAIN_ID = 'thunderai@micz.it';
 const PROTOCOL = 1;
@@ -52,24 +55,39 @@ function status() {
         ok: true,
         protocol: PROTOCOL,
         instanceId,
-        enabled: prefs.privacy_filter_enabled,
         version: browser.runtime.getManifest().version
     };
 }
-async function announce() {
+// Activation is ThunderAI's ai_processing_enabled preference; this add-on only
+// reads and writes it. A refusal (a policy lock) keeps ThunderAI's code and message.
+async function askMain(action, fields = {}) {
     let timer;
     try {
         const result = await Promise.race([
-            browser.runtime.sendMessage(MAIN_ID, { action: 'aiProcessing.register', ...status() }),
+            browser.runtime.sendMessage(MAIN_ID, { action, protocol: PROTOCOL, ...fields }),
             new Promise((_, reject) => {
                 timer = setTimeout(() => reject(new Error(text('privacy_main_unavailable'))), 5000);
             }),
-        ]);
-        if (!result?.ok || result.protocol !== PROTOCOL) {
+        ]).catch(() => fail('MAIN_UNAVAILABLE', 'privacy_main_unavailable'));
+        if (result?.ok === false && typeof result.error?.code === 'string') {
+            const error = new Error(result.error.message || text('privacy_main_unavailable'));
+            error.code = result.error.code;
+            throw error;
+        }
+        if (!result?.ok || result.protocol !== PROTOCOL ||
+            typeof result.enabled !== 'boolean' || typeof result.locked !== 'boolean') {
             fail('PROTOCOL_UNSUPPORTED', 'privacy_main_unavailable');
         }
+        return { enabled: result.enabled, locked: result.locked };
     } finally {
         clearTimeout(timer);
+    }
+}
+async function mainSetting() {
+    try {
+        return { ...await askMain('aiProcessing.getSetting'), main_available: true };
+    } catch {
+        return { enabled: false, locked: false, main_available: false };
     }
 }
 function dispose(sessionId) {
@@ -184,8 +202,17 @@ async function external(message) {
     await ready;
     if (message.action === 'checkPresence') return browser.runtime.getManifest().version;
     if (message.protocol !== PROTOCOL) fail('PROTOCOL_UNSUPPORTED', 'privacy_main_unavailable');
-    // Discovery and new sessions must not observe a half-committed setting or
-    // race model deletion. Existing hooks/cancellation never wait for settings.
+    // ThunderAI's switch changed (whoever wrote it): refresh the open settings pages.
+    if (message.action === 'aiProcessing.settingChanged') {
+        if (typeof message.enabled !== 'boolean' || typeof message.locked !== 'boolean') {
+            fail('INVALID_REQUEST', 'privacy_invalid_request');
+        }
+        void browser.runtime.sendMessage({ action: 'privacyState.changed',
+            enabled: message.enabled, locked: message.locked }).catch(() => {});
+        return {};
+    }
+    // Discovery and new sessions must not race model deletion. Existing
+    // hooks/cancellation never wait for settings.
     if (['aiProcessing.hello', 'aiProcessing.createSession'].includes(message.action)) {
         await settingsQueue;
     }
@@ -195,7 +222,9 @@ async function external(message) {
     if (typeof message.callId !== 'string') fail('INVALID_REQUEST', 'privacy_invalid_request');
     if (operation === 'createSession') {
         await assertPlatform();
-        if (!prefs.privacy_filter_enabled || deleting) {
+        // ThunderAI asks only while its switch is on. Creation stays lazy: a missing
+        // model blocks the first mask rather than the session.
+        if (deleting) {
             fail('MODEL_NOT_READY', 'privacy_download_required');
         }
         if (typeof message.sessionId !== 'string' || sessions.has(message.sessionId)) {
@@ -262,33 +291,24 @@ async function external(message) {
 
 async function settings(message) {
     await ready;
-    if (message.action === 'privacy.getState') return { ...prefs, ...await getPlatformSupport() };
+    if (message.action === 'privacy.getState') {
+        return { ...prefs, ...await getPlatformSupport(), ...await mainSetting() };
+    }
     if (message.action === 'privacy.setEnabled') {
         if (typeof message.enabled !== 'boolean') fail('INVALID_REQUEST', 'privacy_invalid_request');
+        // Readiness is this add-on's to judge: ThunderAI is asked to switch on
+        // only once the platform and the model can actually process.
         if (message.enabled) {
             await assertPlatform();
             if (!await isPrivacyModelDownloaded()) fail('MODEL_NOT_READY', 'privacy_download_required');
         }
-        const previous = prefs.privacy_filter_enabled;
-        await browser.storage.local.set({ privacy_filter_enabled: message.enabled });
-        prefs.privacy_filter_enabled = message.enabled;
-        try {
-            await announce();
-        } catch (error) {
-            if (message.enabled) {
-                prefs.privacy_filter_enabled = previous;
-                await browser.storage.local.set({ privacy_filter_enabled: previous });
-                throw error;
-            }
-        }
-        return {};
+        return await askMain('aiProcessing.setSetting', { enabled: message.enabled });
     }
     if (message.action === 'privacy.setDebug') {
         if (typeof message.enabled !== 'boolean') fail('INVALID_REQUEST', 'privacy_invalid_request');
         await browser.storage.local.set({ do_debug: message.enabled });
         prefs.do_debug = message.enabled;
         logger.changeDebug(prefs.do_debug);
-        await announce().catch(() => {});
         return {};
     }
     if (message.action === 'privacy.deleteModel' && message.confirmed === true) {
@@ -352,7 +372,7 @@ export function initializePrivacyService() {
         }
         return enqueueSettings(message).then(result => ({ ok: true, ...result }), errorResponse);
     });
-    settingsQueue = ready.then(() => announce()).catch(() => {});
+    settingsQueue = ready.catch(() => {});
     setInterval(() => {
         for (const [id, record] of sessions) {
             if (!record.activeRequest && Date.now() - record.lastUsed > 86400000) dispose(id);

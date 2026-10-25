@@ -9,7 +9,8 @@ version string. Processing actions use `action: 'aiProcessing.<operation>'` and
 
 | Operation | Additional fields | Success payload |
 |---|---|---|
-| `hello` | none | enabled, version |
+| `hello` | none | version |
+| `settingChanged` | enabled, locked (booleans) | acknowledgement; relayed to this add-on's pages as `privacyState.changed` |
 | `createSession` | instanceId, sessionId, callId | acknowledgement |
 | `before` | instanceId, sessionId, callId, requestId, input | input, context |
 | `after` | instanceId, sessionId, callId, requestId, context, output, format, optional view | output |
@@ -52,9 +53,16 @@ user input has no processing deadline. These views never run in the provider DOM
 
 ## Outgoing actions
 
-`register` carries `{ok: true, protocol: 1, instanceId, enabled, version}` at
-startup and after settings changes. ThunderAI acknowledges `{ok: true, protocol: 1}`.
-It also discovers with `hello` when opening sessions, so either startup order works.
+The activation switch is ThunderAI's `ai_processing_enabled` preference ("Use
+ThunderAI Privacy" in its advanced options). This add-on keeps no activation flag:
+its settings switch is a mirror, read with `getSetting` and written with `setSetting`
+(`{protocol: 1, enabled}`). Both reply `{ok: true, protocol: 1, enabled, locked}`;
+`locked` means a ThunderAI policy enforces the value, and `setSetting` is then refused
+with `{ok: false, error: {code: 'ai_processing_setting_locked', message}}`, which the
+settings page shows as is. Each call is bounded to 5 s; an absent or slow ThunderAI is
+`MAIN_UNAVAILABLE`, a malformed reply `PROTOCOL_UNSUPPORTED`. ThunderAI sends
+`settingChanged` whenever the preference changes, whoever wrote it. ThunderAI
+discovers with `hello` before each new session, only while its switch is on.
 
 `progress` includes protocol, instanceId, sessionId, requestId, callId and
 `progress: {phase, current, total}`. ThunderAI renews timeouts only for matching,
@@ -79,24 +87,25 @@ unknown cancellations retain no tombstones, and cancelling a queued call does no
 interrupt another call's inference. Disposing clears all session bookkeeping/views.
 
 Explicit deactivation affects new sessions; existing ones retain restoration.
-Unexpected disconnect/uninstall is not an instruction to bypass active processing.
-ThunderAI remembers active registration and blocks until the companion is available
-or explicitly disabled in its own settings. No second activation switch exists.
+Unexpected disconnect/uninstall is not an instruction to bypass active processing:
+while ThunderAI's switch is on, it blocks until the companion is available again or
+the switch is turned off (in either settings page).
 
 ## Internal settings
 
 Only this extension's pages may call `privacy.getState`, `privacy.setEnabled`,
-`privacy.setDebug` and `privacy.deleteModel` (requires `confirmed: true`). State lives
-in local storage, not sync. Enabling requires a supported 64-bit platform, complete
-model cache and successful registration with ThunderAI. Model deletion closes active
-sessions but leaves activation unchanged: requests block rather than bypass filtering.
-Settings reads/mutations are serialized across extension windows, including activation
-registration/rollback and model deletion. Discovery/new-session creation waits for
-the settings queue, so it never observes provisional activation. Existing hooks and
-cancellation remain independent of that queue. Failed storage writes do not change
-the in-memory setting; rejected operations do not poison the queue. A failed disable
-announcement does not undo an explicitly persisted deactivation: later discovery
-reports disabled, while existing sessions keep their mappings.
+`privacy.setDebug` and `privacy.deleteModel` (requires `confirmed: true`). `do_debug`
+lives in local storage, not sync. `privacy.getState` adds ThunderAI's `enabled` and
+`locked` and `main_available` (false when `getSetting` fails: the switch is then shown
+off and disabled). `privacy.setEnabled` forwards to `setSetting` and returns ThunderAI's
+`{enabled, locked}`. Enabling requires a supported 64-bit platform and a complete model
+cache, checked here before ThunderAI is asked; disabling is always forwarded. Model
+deletion closes active sessions but leaves activation unchanged: requests block rather
+than bypass filtering. Settings reads/mutations are serialized across extension windows,
+including activation requests and model deletion. Discovery/new-session creation waits
+for the settings queue, so it never races deletion. Existing hooks and cancellation
+remain independent of that queue. Failed storage writes do not change the in-memory
+setting; rejected operations do not poison the queue.
 
 Update both repositories when changing this contract. The corresponding ThunderAI
 spec is `claude-spec/09-ai-processing.md`.

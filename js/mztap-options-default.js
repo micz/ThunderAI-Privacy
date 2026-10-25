@@ -1,4 +1,4 @@
 export const prefs_default = {
     'do_debug': false,
-    'privacy_filter_enabled': false,
+    // No activation flag: the switch is ThunderAI's ai_processing_enabled preference.
 }

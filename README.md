@@ -46,9 +46,11 @@ Install both add-ons from the [ThunderAI add-on page](https://micz.it/thunderbir
 
 Load this repository's `manifest.json` and the sibling ThunderAI build as temporary
 add-ons. In ThunderAI Privacy settings, download the model and enable filtering.
-Activation requires a compatible ThunderAI. If the companion disappears while active,
-ThunderAI blocks rather than silently sending unfiltered data. Explicitly disable
-filtering in Privacy before removing it if you want to resume unprocessed requests.
+The switch is ThunderAI's "Use ThunderAI Privacy" option (advanced options); the
+toggle in Privacy's settings is the same switch, so activation requires a compatible
+ThunderAI. If the companion disappears while the switch is on, ThunderAI blocks rather
+than silently sending unfiltered data. Switch it off before removing Privacy if you
+want to resume unprocessed requests.
 Model caches are extension-local: an older built-in ThunderAI cache is not shared.
 The model is pinned to an immutable revision (see `VENDORS_INFO.md`). Old floating-main
 downloads must be downloaded again explicitly. If Thunderbird evicts model cache
@@ -56,11 +58,11 @@ files, requests block until the model is downloaded again; filtering is not disa
 
 ### Disabling or uninstalling
 
-Disable filtering in Privacy's settings **before** disabling/removing the add-on
-if you want ThunderAI to resume unprocessed new requests. If an active companion
-disappears unexpectedly, ThunderAI keeps requests blocked; reinstall/re-enable
-Privacy and explicitly disable filtering to clear that requirement. There is no
-second activation switch in ThunderAI.
+Switch filtering off (in Privacy's settings or in ThunderAI's advanced options)
+**before** disabling/removing the add-on if you want ThunderAI to resume unprocessed
+new requests. If the companion disappears unexpectedly while the switch is on,
+ThunderAI keeps requests blocked; re-enable Privacy, or switch off "Use ThunderAI
+Privacy" in ThunderAI's advanced options to clear that requirement.
 
 Nonempty provider prompt-cache/safety identifiers are pseudonymized with a local
 installation key, preserving stability without sending their original values.

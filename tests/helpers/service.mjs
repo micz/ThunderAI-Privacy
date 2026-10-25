@@ -33,10 +33,13 @@ function dispatch(event, message, sender) {
     }
 }
 
+// `enabled` is ThunderAI's "Use ThunderAI Privacy" switch (`main`), which the
+// service reads and writes through getSetting / setSetting.
 export async function serviceHarness({ enabled = true } = {}) {
-    const local = { privacy_filter_enabled: enabled, do_debug: false };
+    const local = { do_debug: false };
+    const main = { enabled, locked: false, available: true };
     const controls = { downloaded: true };
-    const registrations = [], engines = [], windows = [], removed = [], progress = [];
+    const settingRequests = [], relayed = [], engines = [], windows = [], removed = [], progress = [];
     const extensionURL = 'moz-extension://privacy/';
     const browser = {
         i18n: { getMessage: key => key },
@@ -57,10 +60,21 @@ export async function serviceHarness({ enabled = true } = {}) {
             getPlatformInfo: async () => ({ arch: 'x86-64' }),
             onMessage: event(), onMessageExternal: event(),
             async sendMessage(target, message) {
+                // The one-argument form reaches this add-on's own pages.
+                if (typeof target === 'object') {
+                    relayed.push(target);
+                    return undefined;
+                }
                 if (target !== MAIN_ID) throw new Error('Unexpected recipient');
-                if (message.action === 'aiProcessing.register') {
-                    registrations.push(message);
-                    return controls.register ? controls.register(message) : { ok: true, protocol: 1 };
+                if (message.action === 'aiProcessing.getSetting' || message.action === 'aiProcessing.setSetting') {
+                    settingRequests.push(message);
+                    if (!main.available) throw new Error('Could not establish connection. Receiving end does not exist.');
+                    if (controls.setting) return controls.setting(message);
+                    if (message.action === 'aiProcessing.setSetting') {
+                        if (main.locked) return { ok: false, error: { code: 'ai_processing_setting_locked', message: 'Locked by policy' } };
+                        main.enabled = message.enabled;
+                    }
+                    return { ok: true, protocol: 1, enabled: main.enabled, locked: main.locked };
                 }
                 if (message.action === 'aiProcessing.progress') {
                     progress.push(message);
@@ -133,8 +147,9 @@ export async function serviceHarness({ enabled = true } = {}) {
     module.namespace.initializePrivacyService();
     const settings = message => dispatch(browser.runtime.onMessage, message,
         { id: PRIVACY_ID, url: extensionURL + 'options/mztap-options.html' });
-    // Wait for the startup registration before changing controls for a test.
+    // Wait for startup before changing controls for a test.
     await settings({ action: 'privacy.getState' });
+    settingRequests.length = 0;
     const hello = await external({ action: 'aiProcessing.hello', protocol: 1 });
     function external(message, sender = { id: MAIN_ID }) {
         return dispatch(browser.runtime.onMessageExternal, message, sender);
@@ -150,7 +165,7 @@ export async function serviceHarness({ enabled = true } = {}) {
     const before = (fields = {}) => call('before', {
         requestId: webcrypto.randomUUID(), input: { message: 'Alice', instructions: {}, extraBody: {} }, ...fields
     });
-    return { browser, local, controls, registrations, engines, windows, removed, progress,
+    return { browser, local, main, controls, settingRequests, relayed, engines, windows, removed, progress,
         settings, external, call, create, before,
         counts: () => JSON.parse(JSON.stringify(module.namespace.retentionCounts())),
         view(action, win, fields = {}, senderURL = win.url) {

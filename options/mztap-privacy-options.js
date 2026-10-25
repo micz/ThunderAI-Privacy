@@ -25,25 +25,43 @@ export async function initPrivacyOptions() {
         status.textContent = text;
         status.dataset.state = state;
     };
+    const lockedNote = document.getElementById('privacy_locked');
     let downloaded = false;
     let busy = false;
     let supported = false;
+    // The switch mirrors ThunderAI's "Use ThunderAI Privacy" option: it is read
+    // and written there, and cannot be changed while ThunderAI is unreachable or
+    // a policy locks it.
+    let mainAvailable = false;
+    let locked = false;
     const settings = async (action, data = {}) => {
         const result = await browser.runtime.sendMessage({ action, ...data });
         if (!result?.ok) throw new Error(result?.error?.message || browser.i18n.getMessage('privacy_main_unavailable'));
         return result;
     };
     const update = () => {
-        // A local opt-in without its model can still be turned OFF.
-        toggle.disabled = busy || (!toggle.checked && !downloaded);
+        // A switch on without its model can still be turned OFF.
+        toggle.disabled = busy || !mainAvailable || locked || (!toggle.checked && !downloaded);
+        lockedNote.hidden = !locked;
         download.disabled = busy || downloaded || !supported;
         refresh.disabled = busy || !supported;
         remove.disabled = busy || !downloaded;
         log.disabled = busy;
     };
+    const readyStatus = () => setStatus(browser.i18n.getMessage(downloaded ? (toggle.checked ? 'privacy_enabled' : 'privacy_downloaded') : 'privacy_download_required'),
+        downloaded ? 'ready' : 'missing');
+    browser.runtime.onMessage.addListener(message => {
+        if (message?.action !== 'privacyState.changed' || busy) return;
+        toggle.checked = message.enabled;
+        locked = message.locked;
+        if (supported) readyStatus();
+        update();
+    });
     async function checkCache() {
         const state = await settings('privacy.getState');
-        toggle.checked = state.privacy_filter_enabled;
+        toggle.checked = state.enabled;
+        mainAvailable = state.main_available;
+        locked = state.locked;
         log.checked = state.do_debug;
         updateDiagnostics();
         supported = state.supported;
@@ -57,8 +75,8 @@ export async function initPrivacyOptions() {
         const options = await getPrivacyModelOptions();
         backend.textContent = browser.i18n.getMessage(options.device === 'webgpu' ? 'privacy_backend_webgpu' : 'privacy_backend_wasm');
         downloaded = await isPrivacyModelDownloaded();
-        setStatus(browser.i18n.getMessage(downloaded ? (toggle.checked ? 'privacy_enabled' : 'privacy_downloaded') : 'privacy_download_required'),
-            downloaded ? 'ready' : 'missing');
+        readyStatus();
+        if (!mainAvailable) setStatus(browser.i18n.getMessage('privacy_main_unavailable'), 'error');
         // Missing files block processing, never implicitly deactivate protection.
         update();
     }
@@ -67,9 +85,10 @@ export async function initPrivacyOptions() {
         busy = true; update();
         try {
             if (toggle.checked && !await isPrivacyModelDownloaded()) throw new Error(browser.i18n.getMessage('privacy_download_required'));
-            await settings('privacy.setEnabled', { enabled: toggle.checked });
-            setStatus(browser.i18n.getMessage(toggle.checked ? 'privacy_enabled' :
-                (downloaded ? 'privacy_downloaded' : 'privacy_download_required')), downloaded ? 'ready' : 'missing');
+            const result = await settings('privacy.setEnabled', { enabled: toggle.checked });
+            toggle.checked = result.enabled;
+            locked = result.locked;
+            readyStatus();
         } catch (error) {
             toggle.checked = previous;
             setStatus(error.message, 'error');

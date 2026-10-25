@@ -7,66 +7,83 @@ import { serviceHarness, deferred, until, turn, TOKEN } from './helpers/service.
 const output = { content: TOKEN, thinking: '' };
 const after = (h, requestId, context, fields = {}) => h.call('after', { requestId, context, output, format: 'text', ...fields });
 
-for (const enabled of [false, true]) {
-    test(`settings serialize; a failed enable cannot undo a later disable (initially enabled: ${enabled})`, async () => {
-        const h = await serviceHarness({ enabled });
-        const gate = deferred();
-        h.controls.register = message => message.enabled ? gate.promise : { ok: true, protocol: 1 };
-        const enabling = h.settings({ action: 'privacy.setEnabled', enabled: true });
-        await until(() => h.registrations.length === 2);
-        const disabling = h.settings({ action: 'privacy.setEnabled', enabled: false });
-        const state = h.settings({ action: 'privacy.getState' });
-        let discovered = false;
-        const discovery = h.call('hello').then(result => { discovered = true; return result; });
-        await turn();
-        assert.equal(h.registrations.length, 2, 'disable must wait for enable/rollback');
-        assert.equal(discovered, false, 'hello cannot see the provisional activation');
-        gate.reject(new Error('Main unavailable'));
-        assert.equal((await enabling).ok, false);
-        assert.equal((await disabling).ok, true);
-        assert.equal((await state).privacy_filter_enabled, false);
-        assert.equal((await discovery).enabled, false);
-        assert.equal(h.local.privacy_filter_enabled, false);
-    });
-}
-
-test('concurrent successful enable/disable/enable changes commit in arrival order', async () => {
+test('the switch mirrors ThunderAI: getState reads it, setEnabled writes it there and nothing locally', async () => {
     const h = await serviceHarness({ enabled: false });
-    const gate = deferred();
-    h.controls.register = message => h.registrations.length === 2 ? gate.promise : { ok: true, protocol: 1 };
-    const first = h.settings({ action: 'privacy.setEnabled', enabled: true });
-    await until(() => h.registrations.length === 2);
-    const second = h.settings({ action: 'privacy.setEnabled', enabled: false });
-    const third = h.settings({ action: 'privacy.setEnabled', enabled: true });
-    gate.resolve({ ok: true, protocol: 1 });
-    for (const operation of [first, second, third]) assert.equal((await operation).ok, true);
-    assert.deepEqual(h.registrations.map(message => message.enabled), [false, true, false, true]);
-    assert.equal((await h.call('hello')).enabled, true);
-    assert.equal(h.local.privacy_filter_enabled, true);
+    const state = await h.settings({ action: 'privacy.getState' });
+    assert.deepEqual([state.enabled, state.locked, state.main_available], [false, false, true]);
+    const enabled = await h.settings({ action: 'privacy.setEnabled', enabled: true });
+    assert.deepEqual([enabled.ok, enabled.enabled, enabled.locked], [true, true, false]);
+    assert.equal(h.main.enabled, true);
+    assert.deepEqual(h.settingRequests.filter(m => m.action === 'aiProcessing.setSetting').map(m => [m.protocol, m.enabled]), [[1, true]]);
+    assert.equal((await h.settings({ action: 'privacy.getState' })).enabled, true);
+    assert.equal(Object.hasOwn(h.local, 'privacy_filter_enabled'), false);
+    assert.equal(Object.hasOwn(await h.call('hello'), 'enabled'), false, 'activation is not part of the status');
 });
 
-test('failed persistence does not change activation/debug or poison the settings queue', async () => {
+test('enabling needs the model before ThunderAI is asked; disabling never does', async () => {
+    const h = await serviceHarness({ enabled: true });
+    h.controls.downloaded = false;
+    assert.equal((await h.settings({ action: 'privacy.setEnabled', enabled: true })).error.code, 'MODEL_NOT_READY');
+    assert.equal(h.settingRequests.length, 0);
+    assert.equal((await h.settings({ action: 'privacy.setEnabled', enabled: false })).ok, true, 'a switch on without its model can still be turned off');
+    assert.equal(h.main.enabled, false);
+});
+
+test('a policy lock in ThunderAI is reported and changes nothing', async () => {
+    const h = await serviceHarness({ enabled: true });
+    h.main.locked = true;
+    assert.equal((await h.settings({ action: 'privacy.getState' })).locked, true);
+    const refused = await h.settings({ action: 'privacy.setEnabled', enabled: false });
+    assert.deepEqual([refused.ok, refused.error.code, refused.error.message], [false, 'ai_processing_setting_locked', 'Locked by policy']);
+    assert.equal(h.main.enabled, true);
+});
+
+test('ThunderAI unreachable or incompatible: getState says so, setEnabled fails, nothing is assumed', async () => {
+    const h = await serviceHarness({ enabled: true });
+    h.main.available = false;
+    const state = await h.settings({ action: 'privacy.getState' });
+    assert.deepEqual([state.enabled, state.main_available], [false, false]);
+    assert.equal((await h.settings({ action: 'privacy.setEnabled', enabled: false })).error.code, 'MAIN_UNAVAILABLE');
+    h.main.available = true;
+    h.controls.setting = () => ({ ok: true, protocol: 99 });
+    assert.equal((await h.settings({ action: 'privacy.setEnabled', enabled: false })).error.code, 'PROTOCOL_UNSUPPORTED');
+    assert.equal(h.main.enabled, true);
+});
+
+test('settingChanged from ThunderAI reaches the settings pages; malformed or foreign ones do not', async () => {
+    const h = await serviceHarness();
+    assert.equal((await h.external({ action: 'aiProcessing.settingChanged', protocol: 1, enabled: false, locked: true })).ok, true);
+    assert.deepEqual(JSON.parse(JSON.stringify(h.relayed)), [{ action: 'privacyState.changed', enabled: false, locked: true }]);
+    for (const [message, sender] of [
+        [{ action: 'aiProcessing.settingChanged', protocol: 1, enabled: 'no', locked: false }, undefined],
+        [{ action: 'aiProcessing.settingChanged', protocol: 99, enabled: true, locked: false }, undefined],
+        [{ action: 'aiProcessing.settingChanged', protocol: 1, enabled: true, locked: false }, { id: 'other@example.com' }],
+    ]) assert.equal((await h.external(message, sender)).ok, false);
+    assert.equal(h.relayed.length, 1);
+});
+
+test('setting changes serialize in arrival order', async () => {
+    const h = await serviceHarness({ enabled: false });
+    const gate = deferred();
+    h.controls.setting = message => message.enabled ? gate.promise : { ok: true, protocol: 1, enabled: false, locked: false };
+    const enabling = h.settings({ action: 'privacy.setEnabled', enabled: true });
+    await until(() => h.settingRequests.length === 1);
+    const disabling = h.settings({ action: 'privacy.setEnabled', enabled: false });
+    await turn();
+    assert.equal(h.settingRequests.length, 1, 'disable waits for the enable');
+    gate.resolve({ ok: true, protocol: 1, enabled: true, locked: false });
+    assert.equal((await enabling).enabled, true);
+    assert.equal((await disabling).enabled, false);
+    assert.deepEqual(h.settingRequests.map(m => m.enabled), [true, false]);
+});
+
+test('failed debug persistence does not change it or poison the settings queue', async () => {
     const h = await serviceHarness({ enabled: false });
     h.controls.write = async () => { throw new Error('Storage unavailable'); };
-    assert.equal((await h.settings({ action: 'privacy.setEnabled', enabled: true })).ok, false);
     assert.equal((await h.settings({ action: 'privacy.setDebug', enabled: true })).ok, false);
-    assert.equal((await h.call('hello')).enabled, false);
     assert.equal((await h.settings({ action: 'privacy.getState' })).do_debug, false);
     delete h.controls.write;
     assert.equal((await h.settings({ action: 'privacy.setEnabled', enabled: true })).ok, true);
-    assert.equal((await h.call('hello')).enabled, true);
-});
-
-test('disable remains explicit even when the main add-on cannot acknowledge it', async () => {
-    const h = await serviceHarness();
-    await h.create();
-    const prepared = await h.before({ requestId: 'old' });
-    h.controls.register = async () => { throw new Error('Main unavailable'); };
-    assert.equal((await h.settings({ action: 'privacy.setEnabled', enabled: false })).ok, true);
-    assert.equal((await h.call('hello')).enabled, false);
-    assert.equal(h.local.privacy_filter_enabled, false);
-    assert.equal((await after(h, 'old', prepared.context)).output.content, 'Alice', 'existing sessions still restore');
-    assert.equal((await h.call('createSession', { sessionId: 'new' })).ok, false);
 });
 
 test('model deletion disposes sessions immediately, serializes enable and gates new sessions', async () => {
@@ -88,7 +105,7 @@ test('model deletion disposes sessions immediately, serializes enable and gates 
     assert.equal((await enabling).error.code, 'MODEL_NOT_READY');
     assert.equal((await creating).ok, true, 'session creation is lazy; missing model blocks its first mask');
     assert.equal((await h.before({ sessionId: 'new' })).error.code, 'MODEL_NOT_READY');
-    assert.equal((await h.call('hello')).enabled, true, 'deletion never silently deactivates protection');
+    assert.equal(h.main.enabled, true, 'deletion never silently deactivates protection');
 });
 
 test('failed model deletion releases its guard and settings queue', async () => {
@@ -200,13 +217,13 @@ test('settings work does not delay cancellation of an existing session hook', as
     h.controls.mask = () => { started = true; return mask.promise; };
     const active = h.before({ callId: 'mask', requestId: 'request' });
     await until(() => started);
-    h.controls.register = () => registration.promise;
+    h.controls.setting = () => registration.promise;
     const disabling = h.settings({ action: 'privacy.setEnabled', enabled: false });
-    await until(() => h.registrations.length === 2);
+    await until(() => h.settingRequests.length === 1);
     await h.call('cancel', { callId: 'mask', requestId: 'request' });
     assert.equal(h.engines[0].cancellations, 1);
     mask.resolve({ text: TOKEN });
     assert.equal((await active).error.code, 'CANCELLED');
-    registration.resolve({ ok: true, protocol: 1 });
+    registration.resolve({ ok: true, protocol: 1, enabled: false, locked: false });
     assert.equal((await disabling).ok, true);
 });
