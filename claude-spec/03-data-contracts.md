@@ -117,7 +117,10 @@ the switch is turned off (in either settings page).
 ## Internal settings
 
 Only this extension's pages may call `privacy.getState`, `privacy.setEnabled`,
-`privacy.setDebug`, `privacy.download` and `privacy.deleteModel` (requires `confirmed: true`). `do_debug`
+`privacy.setDebug`, `privacy.download`, `privacy.refresh` and `privacy.deleteModel` (requires
+`confirmed: true`). `privacy.refresh` ("Check status") rechecks the model cache for real,
+announcing a changed readiness like any other change, then answers as `privacy.getState`;
+the page then asks the Hub for the download size. `do_debug`
 lives in local storage, not sync. `privacy.getState` adds ThunderAI's `enabled` and
 `locked` and `main_available` (false when `getSetting` fails: the switch is then shown
 off and disabled), and the model fields as `model`. `privacy.setEnabled` forwards to `setSetting` and returns ThunderAI's

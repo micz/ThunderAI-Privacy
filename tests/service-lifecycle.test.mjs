@@ -291,3 +291,21 @@ test('ThunderAI can open this add-on\'s settings page', async () => {
     assert.equal((await h.external({ action: 'aiProcessing.openSettings', protocol: 1 }, { id: 'other@example.com' })).ok, false);
     assert.equal(h.openedSettings.length, 1);
 });
+
+test('Check status rechecks the model cache, tells ThunderAI when it changed, and asks ThunderAI again', async () => {
+    const h = await serviceHarness({ enabled: false });
+    h.controls.downloaded = false; // evicted behind the cached readiness
+    assert.equal((await h.settings({ action: 'privacy.getState' })).model.ready, true, 'getState alone keeps the cached value');
+    const announced = h.readiness.length;
+    h.main.available = false;
+    const state = await h.settings({ action: 'privacy.refresh' });
+    assert.deepEqual([state.ok, state.model.ready, state.main_available], [true, false, false]);
+    assert.deepEqual(h.readiness.slice(announced).map(m => m.ready), [false]);
+    assert.equal((await h.call('hello')).ready, false);
+    h.main.available = true;
+    h.controls.downloaded = true;
+    const again = await h.settings({ action: 'privacy.refresh' });
+    assert.deepEqual([again.model.ready, again.main_available], [true, true]);
+    await h.settings({ action: 'privacy.refresh' });
+    assert.deepEqual(h.readiness.slice(announced).map(m => m.ready), [false, true], 'no announcement when nothing changed');
+});

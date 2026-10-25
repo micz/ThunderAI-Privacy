@@ -88,8 +88,9 @@ export async function initPrivacyOptions() {
             if (finished && !toggle.disabled) toggle.focus();
         }
     });
-    async function readState() {
-        const state = await settings('privacy.getState');
+    // 'privacy.refresh' also rechecks the model cache in the background.
+    async function readState(action = 'privacy.getState') {
+        const state = await settings(action);
         toggle.checked = state.enabled;
         mainAvailable = state.main_available;
         locked = state.locked;
@@ -136,9 +137,11 @@ export async function initPrivacyOptions() {
             notice = { text: msg('privacy_deleted'), state: 'missing' };
         });
     });
+    // Check status: the model cache really rechecked, ThunderAI asked again (installed or
+    // re-enabled after this page opened), and the download size from the Hub.
     refresh.addEventListener('click', () => act(async () => {
+        await readState('privacy.refresh');
         size.textContent = formatBytes(await getPrivacyModelSize());
-        await readState();
     }));
     download.addEventListener('click', () => act(async () => {
         const result = await settings('privacy.download');

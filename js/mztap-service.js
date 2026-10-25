@@ -371,7 +371,10 @@ async function external(message) {
 
 async function settings(message) {
     await ready;
-    if (message.action === 'privacy.getState') {
+    // "Check status": a real look at the model cache (the cached readiness may be stale,
+    // e.g. evicted by Thunderbird; a change also reaches ThunderAI), then the same state.
+    if (message.action === 'privacy.refresh') await refreshModel();
+    if (message.action === 'privacy.getState' || message.action === 'privacy.refresh') {
         return { ...prefs, ...await getPlatformSupport(), ...await mainSetting(), model: modelStatus() };
     }
     if (message.action === 'privacy.download') {
