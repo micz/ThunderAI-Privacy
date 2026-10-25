@@ -36,11 +36,16 @@
           <label class="mzta_switch"><input type="checkbox" id="privacy_filter_enabled" aria-describedby="privacy_switch_help privacy_enable_note" disabled><span class="track"></span></label>
         </div>
       </section>
-      <details class="privacy_details"><summary>__MSG_privacy_coverage_label__</summary><p class="mzta_help">__MSG_privacy_description__</p></details>
+      <details class="privacy_details">
+        <summary><span>__MSG_privacy_coverage_label__</span><span class="chev" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span></summary>
+        <div class="privacy_details_body"><p class="mzta_help">__MSG_privacy_description__</p></div>
+      </details>
       <details class="privacy_details" id="privacy_diagnostics">
-        <summary>__MSG_privacy_diagnostics_label__ <span class="privacy_sensitive_note">__MSG_privacy_sensitive_note__</span></summary>
-        <label class="privacy_log_label"><input type="checkbox" id="do_debug" aria-describedby="privacy_log_warning"> <span>__MSG_privacy_log__</span></label>
-        <p id="privacy_log_warning" class="mzta_help">__MSG_privacy_log_warning__</p>
+        <summary><span>__MSG_privacy_diagnostics_label__ <span class="privacy_sensitive_note">__MSG_privacy_sensitive_note__</span></span><span class="chev" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span></summary>
+        <div class="privacy_details_body">
+          <label class="privacy_log_label"><input type="checkbox" id="do_debug" aria-describedby="privacy_log_warning"> <span>__MSG_privacy_log__</span></label>
+          <p id="privacy_log_warning" class="mzta_help">__MSG_privacy_log_warning__</p>
+        </div>
       </details>
     </main>
     <div id="miczDescription">
