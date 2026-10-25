@@ -20,7 +20,8 @@ h1 { font-size: 22px; margin: 0 0 24px; }
 .mzta_help { color: var(--dim); font-size: 13px; line-height: 1.6; }
 #privacy_intro { margin: -12px 0 20px; }
 #privacy_switch_help, #privacy_enable_note { margin: 5px 0 0; }
-#privacy_enable_note, #privacy_delete_note { color: var(--warning); }
+/* The next thing to do, in the blue of the buttons: a hint, not a warning. */
+#privacy_enable_note, #privacy_delete_note { color: var(--accent); }
 #privacy_delete_note { margin: 8px 0 0; }
 /* Two numbered steps: the model, then the switch. A step not reachable yet is dimmed. */
 .privacy_step { margin-bottom: 22px; }
