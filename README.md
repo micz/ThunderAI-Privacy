@@ -16,7 +16,11 @@ ThunderAI Privacy is an add-on for Thunderbird, designed to add privacy features
 * Masks ThunderAI prompts, follow-ups, provider instructions and automatic features.
 * Restores responses locally; provider conversation history stays masked.
 * Overlapping chunk processing for long inputs, with progress and cancellation.
-* Companion-owned settings, model download/deletion and opt-in sensitive diagnostics.
+* Model first, then the switch: the protection can be turned on only once the local
+  model is downloaded, from this add-on's settings or from ThunderAI's advanced options.
+* The model is downloaded in the background, with progress in both add-ons. An
+  administrator can have it downloaded automatically through ThunderAI's policy.
+* Model deletion (refused while the protection is on) and opt-in sensitive diagnostics.
 * Companion-owned Web input and restored response/diff windows; originals stay out
   of the provider's page. Diagnostics log hook content, not provider HTTP requests.
 
@@ -29,6 +33,8 @@ project/custom-GPT content are outside ThunderAI's protection.
 ThunderAI Privacy is a companion of ThunderAI: the menus, the prompts and the AI model configuration all live in ThunderAI.
 
 ThunderAI talks to Privacy through cross-extension messaging, and Privacy only takes care of the privacy-related work it is asked to do.
+
+The protection has a single switch: the **Use ThunderAI Privacy** option in ThunderAI's advanced options. The switch in this add-on's settings is the same option, so changing one changes the other, and a policy that locks it in ThunderAI locks it here too. While it is on, ThunderAI blocks AI requests if Privacy is not available, instead of sending unfiltered data. The local model, its download and the masking itself stay in Privacy.
 
 <br>
 
@@ -50,9 +56,9 @@ model" in ThunderAI's advanced options), then turn the protection on (step 2): i
 be turned on before the model is ready. The switch is ThunderAI's "Use ThunderAI
 Privacy" option; the toggle in Privacy's settings is the same switch, so activation
 requires a compatible ThunderAI. Hugging Face access is a required permission, so the
-download needs no extra prompt and runs in the background. If the companion disappears while the switch is on, ThunderAI blocks rather
-than silently sending unfiltered data. Switch it off before removing Privacy if you
-want to resume unprocessed requests.
+download needs no extra prompt and runs in the background. If the companion disappears
+while the switch is on, ThunderAI blocks rather than silently sending unfiltered data.
+Switch it off before removing Privacy if you want to resume unprocessed requests.
 Model caches are extension-local: an older built-in ThunderAI cache is not shared.
 The model is pinned to an immutable revision (see `VENDORS_INFO.md`). Old floating-main
 downloads must be downloaded again explicitly. If Thunderbird evicts model cache
@@ -86,6 +92,13 @@ ThunderAI-Privacy's changes are logged [here](CHANGELOG.md).
 
 ## Privacy and Permissions
 This add-on is a standard WebExtension: it does **not** use Thunderbird experimental APIs, so it does not ask for full permissions.
+
+It asks for two permissions at installation:
+* **storage**, for its own settings (diagnostics) and local data.
+* **Access to `huggingface.co` and `*.hf.co`**, used only to download the local model,
+  pinned to a fixed revision (see `VENDORS_INFO.md`). It is granted at installation so the
+  download can run in the background, also when started from ThunderAI. The text of your
+  emails is never sent there: detection and masking run on your computer.
 
 <br>
 
