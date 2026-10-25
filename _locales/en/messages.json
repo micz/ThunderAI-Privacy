@@ -41,6 +41,8 @@
   "privacy_delete_downloading": { "message": "Wait for the download to finish before deleting the model." },
   "privacy_download_failed": { "message": "The model download failed. Check your connection and try again." },
   "privacy_downloading": { "message": "Downloading the model…" },
+  "prefs_footer_translate": { "message": "Translate the addon" },
+  "prefs_footer_donate": { "message": "Make a donation" },
   "privacy_locked": { "message": "Your organization manages this switch through the ThunderAI policy." },
   "privacy_session_expired": { "message": "The privacy session has expired or the companion restarted. Start a new ThunderAI chat or command." },
   "privacy_invalid_request": { "message": "ThunderAI sent an invalid processing request. Update both add-ons together." },

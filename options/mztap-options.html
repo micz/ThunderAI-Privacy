@@ -2,11 +2,9 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <link rel="stylesheet" href="mztap-options.css">
     <link rel="stylesheet" href="mztap-privacy.css">
   </head>
   <body>
-    <div id="miczRelNotes"><a href="mztap-release-notes.html">__MSG_prefs_OptionText_release_notes__</a></div>
     <main id="privacy_settings">
       <h1>ThunderAI Privacy</h1>
       <p id="privacy_intro" class="mzta_help">__MSG_privacy_intro__</p>
@@ -47,16 +45,14 @@
           <p id="privacy_log_warning" class="mzta_help">__MSG_privacy_log_warning__</p>
         </div>
       </details>
+      <!-- Bottom block, as ThunderAI's: the note about ThunderAI, then plain links. -->
+      <p id="privacy_about">__MSG_prefsInfoDesc_1__ <a href="https://addons.thunderbird.net/thunderbird/addon/thunderai/">__MSG_prefsInfoDesc_2__</a></p>
+      <div id="privacy_footer">
+        <a href="https://micz.it/thunderbird-addon-thunderai/translate/">__MSG_prefs_footer_translate__</a>
+        <a href="https://micz.it/thunderbird-addon-thunderai/donate/">__MSG_prefs_footer_donate__</a>
+        <a href="mztap-release-notes.html">__MSG_prefs_OptionText_release_notes__</a>
+      </div>
     </main>
-    <div id="miczDescription">
-      <h1>__MSG_prefsInfoTitle__</h1>
-      <p><span>__MSG_prefsInfoDesc_1__<br/></span>
-        <span><a href="https://addons.thunderbird.net/thunderbird/addon/thunderai/">__MSG_prefsInfoDesc_2__</a><br/></span>
-          <span>__MSG_prefsInfoDesc_3__</span>
-          <br><br></p>
-    </div>
-    <div id="miczTranslate">__MSG_TranslateText__ <a href="https://micz.it/thunderbird-addon-thunderai/translate/">__MSG_TranslateLink__</a></div>
-    <div id="miczDonation">__MSG_prefsDonation_1__<br/><a href="http://micz.it/thunderbird-addon-thunderai/donate/">__MSG_prefsDonation_2__</a></div>
     <script src="mztap-options-page.js" type="module"></script>
   </body>
 </html>
