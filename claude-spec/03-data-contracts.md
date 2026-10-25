@@ -15,8 +15,7 @@ version string. Processing actions use `action: 'aiProcessing.<operation>'` and
 | `settingChanged` | enabled, locked (booleans) | acknowledgement; relayed to this add-on's pages as `privacyState.changed` |
 | `createSession` | instanceId, sessionId, callId | acknowledgement |
 | `before` | instanceId, sessionId, callId, requestId, input | input, context |
-| `after` | instanceId, sessionId, callId, requestId, context, output, format, optional view | output |
-| `collectInput` | instanceId, sessionId, callId, requestId, fields | values |
+| `after` | instanceId, sessionId, callId, requestId, context, output, format | output |
 | `cancel` | instanceId, sessionId, callId, requestId | acknowledgement |
 | `disposeSession` | instanceId, sessionId, callId | acknowledgement |
 
@@ -28,7 +27,7 @@ Codes include `PROTOCOL_UNSUPPORTED`, `SESSION_EXPIRED`, `MODEL_NOT_READY`,
 failures; editing the input is required rather than restarting Thunderbird.
 `UNRESTORED_PLACEHOLDER` blocks output when a recognizable fragment of the mapped
 session namespace remains after exact-token recognition in content, in all formats,
-before any result/view is returned. Display-only thinking/provider error strings
+before any result is returned. Display-only thinking/provider error strings
 restore known exact tokens once but leave changed fragments literal; they cannot
 block otherwise valid content. They are never inserted or parsed as response content.
 Changed tokens are never fuzzily matched to originals. It cannot detect arbitrary
@@ -39,7 +38,9 @@ provider instructions and serialized extra-body JSON. The companion preserves th
 map keys. It never receives provider credentials/configuration through this envelope.
 Output is `{content, thinking, error?}` with string fields. The after hook validates
 opaque `context: {token}` against the original request in the session. Formats are
-`text`, `json` (JSON-string-safe restoration) and `html` (escaped originals).
+`text` and `json` (JSON-string-safe restoration). ChatGPT Web is not covered: ThunderAI
+blocks a prompt on that connection while its switch is on, so no HTML format, input form
+or result window exists in this protocol.
 JSON restoration accepts every valid root, including arrays and standalone strings,
 and separately restores fenced blocks. String literals are escaped without changing
 numeric spelling or formatting; ordinary summaries/translations retain text fallback.
@@ -47,11 +48,6 @@ Invalid extra-body/options/schema JSON is rejected with `INVALID_JSON`, never
 returned unmasked. Cache keys and safety identifiers are installation-keyed HMAC
 pseudonyms, not per-session placeholders: identical field/value pairs remain stable
 across sessions/restarts, and top-level JSON overrides follow the same policy.
-Optional `view: {original: string, diff: boolean}` on `after` opens the restored
-result/diff in Privacy's own window. `collectInput` accepts `[{info: string}]`, opens
-a companion-owned input form and returns string `values` for ThunderAI to assemble
-the prompt. Closing the form or cancelling/disposing the session rejects the wait;
-user input has no processing deadline. These views never run in the provider DOM.
 
 ## Outgoing actions
 
@@ -102,12 +98,12 @@ stopping peers. Sessions expire after 24 h idle; the worker closes 60 s after it
 lease is released. Restart invalidates old IDs; ThunderAI must start a fresh chat.
 Only the latest prepared request/context is retained per session. A new preparation
 retires the previous context, including when replacement preparation fails. Repeated
-restoration/previews of the latest request remain supported. Conversation-wide
+restoration of the latest request remains supported. Conversation-wide
 mappings are not retired with contexts, so follow-ups still restore earlier values.
 Pending calls are keyed by `callId`; cancellation must match that call's `requestId`.
 Cancellation flags exist only until their queued/in-flight calls settle. Late or
 unknown cancellations retain no tombstones, and cancelling a queued call does not
-interrupt another call's inference. Disposing clears all session bookkeeping/views.
+interrupt another call's inference. Disposing clears all session bookkeeping.
 
 Explicit deactivation affects new sessions; existing ones retain restoration.
 Unexpected disconnect/uninstall is not an instruction to bypass active processing:
@@ -137,7 +133,3 @@ setting; rejected operations do not poison the queue.
 
 Update both repositories when changing this contract. The corresponding ThunderAI
 spec is `claude-spec/09-ai-processing.md`.
-
-`privacyView.data` and `privacyView.submit` are internal-only view messages, checked
-against the exact companion page URL and a random view ID. The background owns view
-data, closes session windows on disposal and rejects abandoned input forms.

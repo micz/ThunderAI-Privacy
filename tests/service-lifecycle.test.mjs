@@ -121,7 +121,7 @@ test('failed model deletion releases its guard and settings queue', async () => 
     assert.equal((await h.settings({ action: 'privacy.setEnabled', enabled: false })).ok, true);
 });
 
-test('only the latest context is retained; repeated previews work and mappings survive retirement', async () => {
+test('only the latest context is retained; repeated restorations work and mappings survive retirement', async () => {
     const h = await serviceHarness();
     await h.create();
     let previous;

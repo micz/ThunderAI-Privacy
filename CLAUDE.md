@@ -63,7 +63,6 @@ js/
   workers/                Shared local inference worker
   lib/transformers/       Bundled JS/WASM runtime (see VENDORS_INFO.md)
 options/                   Options UI + release-notes page
-pages/privacy-web/         Companion-owned Web input/result/diff windows
 _locales/<lang>/messages.json   Translations (default_locale: en)
 images/                    Icons
 ```

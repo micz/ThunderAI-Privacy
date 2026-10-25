@@ -1,7 +1,3 @@
-js/lib/diff.js:
-- Version: 9.0.0
-- URL: https://cdn.jsdelivr.net/npm/diff@9.0.0/dist/diff.js
-
 js/lib/transformers/transformers.min.js:
 - Version: 4.3.1
 - URL: https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.1/dist/transformers.min.js

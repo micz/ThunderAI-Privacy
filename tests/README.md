@@ -7,10 +7,10 @@ node --experimental-vm-modules --test tests/*.test.mjs
 ```
 
 These checks exercise JSON/placeholder restoration, extra-body and identifier
-contracts, model-revision propagation and the actual service/view modules with
+contracts, model-revision propagation and the actual service module with
 mocked extension APIs and inference/model management. Each service test gets an
 isolated VM, preferences and session state. They cover settings ordering/rollback,
-deletion, context retirement, cancellation, disposal and companion-owned windows.
+deletion, context retirement, cancellation and disposal.
 The model-revision checks also exercise the actual vendored configuration/cache
 loader with synthetic cached files, catching source-flag validation regressions
 without fetching model files or creating an ONNX inference session.
@@ -34,5 +34,5 @@ with fixed predictions, plus literal-special-token rejection. It is skipped when
 the environment variable is unset. No network requests or model weights are used;
 keep fixtures outside the repository or under a `*.local` directory.
 
-Real Thunderbird cross-add-on messaging, window behavior, CPU/WebGPU execution
+Real Thunderbird cross-add-on messaging, CPU/WebGPU execution
 and detection quality still require manual verification with fictional data.

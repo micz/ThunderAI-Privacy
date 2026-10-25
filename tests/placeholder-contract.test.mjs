@@ -22,23 +22,26 @@ for (const fragment of [TOKEN.toLowerCase(), TOKEN.slice(1, -1),
     });
 }
 
-test('HTML escaping applies to originals, not to the surrounding HTML', () => {
-    assert.equal(restorePrivacyPlaceholders(`<p>${TOKEN}</p>`, mappings, value => value.replaceAll('<', '&lt;').replaceAll('>', '&gt;')),
-        '<p>Alice &lt;Example&gt;</p>');
-});
-
-test('service blocks changed tokens before returning output or opening a restored view in every format', async () => {
+test('service blocks changed tokens before returning output in every format', async () => {
     const h = await serviceHarness();
     await h.create();
     const prepared = await h.before({ requestId: 'request' });
-    for (const format of ['text', 'html', 'json']) {
+    for (const format of ['text', 'json']) {
         const result = await h.call('after', { requestId: 'request', context: prepared.context, format,
-            output: { content: format === 'json' ? JSON.stringify([TOKEN.toLowerCase()]) : TOKEN.toLowerCase(), thinking: '' },
-            view: { original: '', diff: false } });
+            output: { content: format === 'json' ? JSON.stringify([TOKEN.toLowerCase()]) : TOKEN.toLowerCase(), thinking: '' } });
         assert.equal(result.error.code, 'UNRESTORED_PLACEHOLDER');
         assert.equal(result.error.message, 'privacy_unrestored_placeholder');
     }
-    assert.equal(h.windows.length, 0);
+});
+
+test('the html format of the removed ChatGPT Web integration is rejected', async () => {
+    const h = await serviceHarness();
+    await h.create();
+    const prepared = await h.before({ requestId: 'request' });
+    const result = await h.call('after', { requestId: 'request', context: prepared.context, format: 'html',
+        output: { content: TOKEN, thinking: '' } });
+    assert.equal(result.error.code, 'INVALID_REQUEST');
+    assert.equal((await h.call('collectInput', { requestId: 'request', fields: [{ info: '' }] })).error.code, 'INVALID_REQUEST');
 });
 
 test('display-only restoration preserves changed fragments and expands exact tokens only once', () => {
@@ -48,22 +51,20 @@ test('display-only restoration preserves changed fragments and expands exact tok
     assert.equal(restoreExactPrivacyPlaceholders(TOKEN, [[TOKEN, TOKEN]]), TOKEN);
 });
 
-test('reasoning/error fragments do not block clean content or views in any format', async () => {
+test('reasoning/error fragments do not block clean content in any format', async () => {
     const h = await serviceHarness();
     await h.create();
     const prepared = await h.before({ requestId: 'request' });
     const thinking = `Reason about ${TOKEN.slice(1, -1)}, then return ${TOKEN}`;
     const error = `Error mentioning ${TOKEN.toLowerCase()} and ${TOKEN}`;
-    for (const format of ['text', 'html', 'json']) {
+    for (const format of ['text', 'json']) {
         const result = await h.call('after', { requestId: 'request', context: prepared.context, format,
-            output: { content: format === 'json' ? JSON.stringify([TOKEN]) : TOKEN, thinking, error },
-            view: { original: '', diff: false } });
+            output: { content: format === 'json' ? JSON.stringify([TOKEN]) : TOKEN, thinking, error } });
         assert.equal(result.ok, true);
         assert.equal(result.output.content, format === 'json' ? '["Alice"]' : 'Alice');
         assert.equal(result.output.thinking, `Reason about ${TOKEN.slice(1, -1)}, then return Alice`);
         assert.equal(result.output.error, `Error mentioning ${TOKEN.toLowerCase()} and Alice`);
     }
-    assert.equal(h.windows.length, 3);
 });
 
 test('deterministic text failures keep their stable code and actionable message', async () => {

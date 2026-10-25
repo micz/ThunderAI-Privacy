@@ -21,11 +21,10 @@ ThunderAI Privacy is an add-on for Thunderbird, designed to add privacy features
 * The model is downloaded in the background, with progress in both add-ons. An
   administrator can have it downloaded automatically through ThunderAI's policy.
 * Model deletion (refused while the protection is on) and opt-in sensitive diagnostics.
-* Companion-owned Web input and restored response/diff windows; originals stay out
-  of the provider's page. Diagnostics log hook content, not provider HTTP requests.
+* Diagnostics log hook content, not provider HTTP requests.
 
-Detection can miss data. Direct input into ChatGPT, existing conversations and
-project/custom-GPT content are outside ThunderAI's protection.
+Detection can miss data. ThunderAI Privacy works with the API connections only: while it
+is on, ThunderAI blocks a prompt sent through ChatGPT Web instead of sending it unprocessed.
 
 <br>
 

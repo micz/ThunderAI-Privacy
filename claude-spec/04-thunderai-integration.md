@@ -7,7 +7,6 @@
 | Activation switch (`ai_processing_enabled`) | ThunderAI; Privacy's settings page mirrors it |
 | Readiness (platform, model), model/runtime/downloads, diagnostics | Privacy (a download can be started from ThunderAI) |
 | Detection, placeholders, mappings, response restoration | Privacy |
-| Web custom-input and processed-response views | Privacy extension pages |
 
 ThunderAI's `ProcessingWorker` applies hooks to all provider workers for chat actions,
 follow-ups and special commands (including automatic and batch features). Response
@@ -15,11 +14,9 @@ text/thinking is buffered while processing is active. Thinking is separated befo
 restoration; structured results are restored before parsing/storing/Sparks actions.
 Postprocessed replies remain local and never re-enter provider conversation history.
 
-For ChatGPT Web, the before hook runs before DOM insertion. Custom input is collected
-in Privacy's own window, outside the site's DOM. The after hook runs when extracting text for Thunderbird
-reply/replace or a companion-owned view/diff; original values and diff baselines are never
-written back into the site. Direct typing into ChatGPT, existing conversations and
-project/custom-GPT content are outside this protection.
+ChatGPT Web is not covered: the restored answer could only be shown outside the site's
+page, so while the switch is on ThunderAI blocks a prompt on that connection with a notice
+before opening the site, rather than sending it unprocessed.
 
 Without an active processor, ThunderAI hooks return unchanged content. Active failures
 abort; there is no silent bypass. Exact wire messages and lifecycle semantics are in
@@ -30,8 +27,8 @@ add-ons; a ThunderAI build implementing API v1 is required (target ThunderAI 5.2
 
 Use fictional values and verify CPU/WebGPU, model download/partial cache/deletion,
 long inputs, follow-up placeholder reuse, inline/dedicated thinking, JSON escaping,
-Web reply/replace/view/diff, cancellation/timeout, concurrent commands and companion
+cancellation/timeout, concurrent commands and companion
 restart/uninstall/deactivation. Inspect outgoing bodies and ensure restored originals
-do not return in provider history. Focused JSON restoration and service/view
+do not return in provider history. Focused JSON restoration and service
 lifecycle checks live in `tests/`; see `tests/README.md`. They mock extension APIs
 and inference/model management and do not replace Thunderbird/CPU/WebGPU testing.

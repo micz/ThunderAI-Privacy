@@ -13,17 +13,8 @@ import {
 import { PRIVACY_MODEL_ORIGINS } from './mztap-privacy-config.js';
 import { maskPrivacyExtraBody } from './mztap-extra-body.js';
 import { PRIVACY_PLACEHOLDER_INSTRUCTIONS } from './mztap-privacy-instructions.js';
-import {
-    initializePrivacyViews,
-    collectPrivacyInput,
-    showPrivacyResult,
-    closePrivacyViews
-} from './mztap-views.js';
 import { pseudonymizePrivacyIdentifier } from './mztap-identifiers.js';
-import {
-    restorePrivacyPlaceholders,
-    restoreExactPrivacyPlaceholders
-} from './mztap-placeholders.js';
+import { restoreExactPrivacyPlaceholders } from './mztap-placeholders.js';
 
 const MAIN_ID = 'thunderai@micz.it';
 const PROTOCOL = 1;
@@ -165,7 +156,6 @@ function dispose(sessionId) {
     const record = sessions.get(sessionId);
     if (!record) return;
     record.disposed = true;
-    closePrivacyViews(record);
     record.session.dispose();
     record.context = null;
     record.calls.clear();
@@ -177,11 +167,6 @@ function check(record, message) {
 }
 function audit(record, message) {
     if (record.audit) logger.log(message);
-}
-function restoreHtml(session, value) {
-    const escape = original => original.replace(/[&<>"']/g, char =>
-        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
-    return restorePrivacyPlaceholders(value, session.getMappings(), escape);
 }
 function assertContext(record, message) {
     if (typeof message.requestId !== 'string' ||
@@ -253,19 +238,18 @@ async function after(record, message) {
     const output = message.output;
     if (typeof output?.content !== 'string' ||
         typeof output?.thinking !== 'string' ||
-        !['text', 'html', 'json'].includes(message.format)) {
+        !['text', 'json'].includes(message.format)) {
         fail('INVALID_REQUEST', 'privacy_invalid_request');
     }
     audit(record, `Raw response before restoration: ${JSON.stringify(output)}`);
     const restore = message.format === 'json' ? value => restorePrivacyResponse(value, record.session) :
-        message.format === 'html' ? value => restoreHtml(record.session, value) : value => record.session.restore(value);
+        value => record.session.restore(value);
     const restoreDisplay = value => restoreExactPrivacyPlaceholders(value, record.session.getMappings());
     const restored = {
         content: restore(output.content),
         thinking: restoreDisplay(output.thinking),
         ...(typeof output.error === 'string' ? { error: restoreDisplay(output.error) } : {})
     };
-    if (message.view) await showPrivacyResult(record, message.requestId, restored.content, message.view);
     check(record, message);
     return { output: restored };
 }
@@ -333,11 +317,10 @@ async function external(message) {
         if (!call || call.requestId !== message.requestId) return {};
         call.cancelled = true;
         if (record.context?.requestId === message.requestId) record.context = null;
-        closePrivacyViews(record, message.requestId);
         if (record.activeCall === message.callId) record.session.cancel();
         return {};
     }
-    if (!['before', 'after', 'collectInput'].includes(operation) ||
+    if (!['before', 'after'].includes(operation) ||
         typeof message.requestId !== 'string' || record.calls.has(message.callId)) {
         fail('INVALID_REQUEST', 'privacy_invalid_request');
     }
@@ -352,11 +335,6 @@ async function external(message) {
             if (operation === 'before') record.context = null;
             if (operation === 'before') return await before(record, message);
             if (operation === 'after') return await after(record, message);
-            if (operation === 'collectInput') {
-                const values = await collectPrivacyInput(record, message.requestId, message.fields);
-                check(record, message);
-                return { values };
-            }
             fail('INVALID_REQUEST', 'privacy_invalid_request');
         } finally {
             record.activeRequest = null;
@@ -446,7 +424,6 @@ function errorResponse(error) {
     return { ok: false, error: { code, message } };
 }
 export function initializePrivacyService() {
-    initializePrivacyViews();
     browser.runtime.onMessageExternal.addListener((message, sender) => {
         if (sender.id !== MAIN_ID) {
             return Promise.resolve({ ok: false, error: { code: 'INVALID_SENDER' } });

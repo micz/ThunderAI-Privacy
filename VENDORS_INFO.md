@@ -1,10 +1,5 @@
 # Bundled runtime assets
 
-file: js/lib/diff.js
-source: https://cdn.jsdelivr.net/npm/diff@9.0.0/dist/diff.js
-license: BSD-3-Clause (js/lib/LICENSE-diff)
-purpose: companion-owned local response diff view
-
 files: js/lib/transformers/transformers.min.js
 source: https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.1/dist/transformers.min.js
 version: 4.3.1 (upstream tag/commit 511bb61a7c46b73e33f1af3fb308fbd1afe98c02)

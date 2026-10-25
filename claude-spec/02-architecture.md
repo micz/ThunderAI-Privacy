@@ -28,8 +28,6 @@ queued/in-flight call records. Context retirement never clears conversation mapp
   namespace fragments; changed tokens block rather than guessing original values.
 - `mztap-privacy-instructions.js`: task-neutral placeholder guidance added after
   masking every outgoing message, including follow-ups.
-- `mztap-views.js` and `pages/privacy-web/`: companion-owned custom-input, restored
-  result and diff windows, with session-scoped cleanup and internal sender checks.
 - `mztap-transformers-runtime.js`: lazy bundled Transformers.js/ONNX Runtime loading.
   No executable assets are downloaded. See `VENDORS_INFO.md` for versions/licenses/hashes.
 
@@ -67,7 +65,7 @@ Rules complement model detection for complete emails, contact-formatted phones,
 validated/labeled cards, English/German card endings and support/billing companies.
 Repetition is restricted to suitable identifiers/names/addresses, with casing and
 minimum-length guards. Placeholders use `[PII_<8-hex-session>_<LABEL>_<number>]`.
-Restoration is single-pass; HTML originals are escaped. Valid JSON roots (including
+Restoration is single-pass. Valid JSON roots (including
 arrays/strings) and individual fenced blocks use escaped string-literal restoration
 without reserializing numbers or formatting. Non-JSON task output uses text fallback.
 Recognizable leftover fragments of a mapped session's namespace (case changes,

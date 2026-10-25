@@ -1,6 +1,6 @@
 /* ThunderAI Privacy — Copyright (C) 2026 Mic (m@micz.it), Nico Martin (mail@nico.dev).
  * SPDX-License-Identifier: GPL-3.0-or-later */
-// Actual service/views in an isolated extension environment. Only inference and
+// The actual service in an isolated extension environment. Only inference and
 // model management are mocked; no detector tests or model downloads live here.
 import vm from 'node:vm';
 import { readFile } from 'node:fs/promises';
@@ -41,7 +41,7 @@ export async function serviceHarness({ enabled = true } = {}) {
     // `download`: (progress_callback) => promise, to drive a background download.
     const controls = { downloaded: true, permission: true };
     const settingRequests = [], relayed = [], readiness = [], openedSettings = [],
-        engines = [], windows = [], removed = [], progress = [];
+        engines = [], progress = [];
     const extensionURL = 'moz-extension://privacy/';
     const browser = {
         i18n: { getMessage: key => key },
@@ -90,17 +90,7 @@ export async function serviceHarness({ enabled = true } = {}) {
                 throw new Error('Unexpected outgoing action');
             }
         },
-        permissions: { contains: async () => controls.permission },
-        windows: {
-            onRemoved: event(),
-            async create(options) {
-                const win = { id: windows.length + 1, ...options };
-                windows.push(win);
-                await controls.openWindow?.();
-                return win;
-            },
-            async remove(id) { removed.push(id); }
-        }
+        permissions: { contains: async () => controls.permission }
     };
     const context = vm.createContext({ browser, crypto: webcrypto, TextEncoder,
         console, URL, setTimeout, clearTimeout, setInterval: () => 0 });
@@ -179,15 +169,8 @@ export async function serviceHarness({ enabled = true } = {}) {
     const before = (fields = {}) => call('before', {
         requestId: webcrypto.randomUUID(), input: { message: 'Alice', instructions: {}, extraBody: {} }, ...fields
     });
-    return { browser, local, main, controls, settingRequests, relayed, readiness, openedSettings, engines, windows, removed, progress,
+    return { browser, local, main, controls, settingRequests, relayed, readiness, openedSettings, engines, progress,
         settings, external, call, create, before,
-        counts: () => JSON.parse(JSON.stringify(module.namespace.retentionCounts())),
-        view(action, win, fields = {}, senderURL = win.url) {
-            return dispatch(browser.runtime.onMessage, { action, id: new URL(win.url).searchParams.get('id'), ...fields },
-                { id: PRIVACY_ID, url: senderURL });
-        },
-        closeWindow(id) {
-            for (const listener of browser.windows.onRemoved.listeners) listener(id);
-        }
+        counts: () => JSON.parse(JSON.stringify(module.namespace.retentionCounts()))
     };
 }
