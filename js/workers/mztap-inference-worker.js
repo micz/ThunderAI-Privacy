@@ -41,15 +41,23 @@ async function isDownloaded() {
     return ModelRegistry.is_pipeline_cached(TASK, PRIVACY_MODEL, options);
 }
 
+function downloadRequired() {
+    const error = new Error('Privacy model download required');
+    error.code = 'privacy_download_required';
+    return error;
+}
+
 async function getClassifier() {
     classifierPromise ??= (async () => {
-        if (!await isDownloaded()) {
-            const error = new Error('Privacy model download required');
-            error.code = 'privacy_download_required';
+        if (!await isDownloaded()) throw downloadRequired();
+        const [{ pipeline }, options] = await Promise.all([loadPrivacyRuntime(), getOptions()]);
+        try {
+            return await pipeline(TASK, PRIVACY_MODEL, { ...options, local_files_only: true });
+        } catch (error) {
+            // A cache evicted between the check and the load is still a missing model.
+            if (!await isDownloaded().catch(() => false)) throw downloadRequired();
             throw error;
         }
-        const [{ pipeline }, options] = await Promise.all([loadPrivacyRuntime(), getOptions()]);
-        return pipeline(TASK, PRIVACY_MODEL, { ...options, local_files_only: true });
     })().catch(error => { classifierPromise = null; throw error; });
     return classifierPromise;
 }

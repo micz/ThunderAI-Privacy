@@ -50,6 +50,7 @@ async function workerHarness({ mainOnly = false } = {}) {
     const pending = new Map();
     const context = vm.createContext({ self: {}, caches: { open: async () => ({ match: async url => {
         urls.push(url);
+        if (controls.evicted) return false;
         return mainOnly ? url.includes('/resolve/main/') : url.includes(`/resolve/${config.PRIVACY_MODEL_REVISION}/`);
     } }) }, postMessage(message) {
         if (!message.event) {
@@ -71,6 +72,11 @@ async function workerHarness({ mainOnly = false } = {}) {
             async pipeline(task, model, options) {
                 assert.equal(env.allowRemoteModels, !options.local_files_only);
                 if (controls.failDownload) throw new Error('Download failed');
+                if (controls.evictOnLoad && options.local_files_only) {
+                    controls.evicted = true;
+                    throw new Error('file was not found locally');
+                }
+                if (controls.failLoad && options.local_files_only) throw new Error('Load failed');
                 pipelines.push(options);
                 return { dispose: async () => {} };
             }
@@ -115,6 +121,18 @@ test('old floating-main cache entries cannot satisfy the pinned model guard', as
     const result = await h.request('mask', { sessionId: 'session', maskId: 'mask', text: 'hello' });
     assert.equal(result.error.code, 'privacy_download_required');
     assert.equal(h.pipelines.length, 0);
+});
+
+test('a cache evicted between the check and the load is reported as a missing model, any other load failure as itself', async () => {
+    const h = await workerHarness();
+    await h.request('createSession', { sessionId: 'session' });
+    h.controls.evictOnLoad = true;
+    const evicted = await h.request('mask', { sessionId: 'session', maskId: 'mask', text: 'hello' });
+    assert.equal(evicted.error.code, 'privacy_download_required');
+    Object.assign(h.controls, { evictOnLoad: false, evicted: false, failLoad: true });
+    const failed = await h.request('mask', { sessionId: 'session', maskId: 'mask-2', text: 'hello' });
+    assert.equal(failed.error.code, undefined);
+    assert.match(failed.error.message, /Load failed/);
 });
 
 test('failed size/download operations restore the offline guard before any later work', async () => {

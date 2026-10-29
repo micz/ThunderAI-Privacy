@@ -292,6 +292,20 @@ test('ThunderAI can open this add-on\'s settings page', async () => {
     assert.equal(h.openedSettings.length, 1);
 });
 
+test('a model evicted behind the cached readiness blocks the first mask with the download message, and ThunderAI learns it', async () => {
+    const h = await serviceHarness();
+    await h.create();
+    h.controls.downloaded = false; // evicted behind the cached readiness
+    assert.equal((await h.call('hello')).ready, true);
+    const announced = h.readiness.length;
+    const blocked = await h.before();
+    assert.deepEqual([blocked.ok, blocked.error.code, blocked.error.message], [false, 'MODEL_NOT_READY', 'privacy_download_required']);
+    assert.equal(h.progress.length, 0, 'nothing was filtered');
+    await until(() => h.readiness.length > announced);
+    assert.deepEqual(h.readiness.slice(announced).map(m => m.ready), [false]);
+    assert.equal((await h.call('hello')).ready, false);
+});
+
 test('Check status rechecks the model cache, tells ThunderAI when it changed, and asks ThunderAI again', async () => {
     const h = await serviceHarness({ enabled: false });
     h.controls.downloaded = false; // evicted behind the cached readiness

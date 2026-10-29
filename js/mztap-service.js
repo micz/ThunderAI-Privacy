@@ -55,8 +55,9 @@ function status() {
 }
 
 // Model readiness, cached here so discovery never starts a worker. Refreshed at
-// startup, after a download and after a deletion; an evicted cache still blocks at
-// the first mask (MODEL_NOT_READY), never bypasses.
+// startup, after a download, after a deletion and after a mask found the model
+// missing; an evicted cache still blocks at the first mask (MODEL_NOT_READY), never
+// bypasses.
 const model = { ready: false, downloading: false, progress: null, loaded: null, total: null, error: null };
 function modelStatus() {
     const { ready, downloading, progress, loaded, total, error } = model;
@@ -336,6 +337,13 @@ async function external(message) {
             if (operation === 'before') return await before(record, message);
             if (operation === 'after') return await after(record, message);
             fail('INVALID_REQUEST', 'privacy_invalid_request');
+        } catch (error) {
+            // A cache evicted behind the cached readiness: check it again, so ThunderAI
+            // (its options page, its autodownload policy) learns the model is gone.
+            if (error.code === 'privacy_download_required') {
+                settingsQueue = settingsQueue.then(refreshModel).catch(() => {});
+            }
+            throw error;
         } finally {
             record.activeRequest = null;
             record.activeCall = null;

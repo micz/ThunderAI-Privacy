@@ -74,7 +74,10 @@ Readiness is cached in the background (supported platform, complete model cache,
 deletion running): checked at startup (discovery waits for it), after a download and
 after a deletion, never on `hello`, so discovery starts no worker. The background closes
 its model worker after each check and download. A stale cache still blocks at the first
-mask (`MODEL_NOT_READY`).
+mask (`MODEL_NOT_READY`, with the localized `privacy_download_required` message), also
+when the cache disappears between the worker's check and the model load. That failure
+queues a new readiness check, so the change reaches ThunderAI as `readinessChanged`
+(its options page, its autodownload policy).
 
 The Hugging Face hosts (`PRIVACY_MODEL_ORIGINS`) are required manifest permissions, so
 the download needs no user gesture and runs in the background, started by
