@@ -5,9 +5,6 @@ ThunderAI Privacy is an add-on for Thunderbird, designed to add privacy features
 > Privacy is a companion add-on: it does nothing on its own.
 > To use it, you first need to install [ThunderAI](https://github.com/micz/ThunderAI).
 
-> [!NOTE]
-> If you need to open an issue, use this repository: https://github.com/micz/ThunderAI-Privacy/issues
-
 <br>
 
 
@@ -86,18 +83,10 @@ fragments literal, without blocking otherwise usable content.
 ## Changelog
 ThunderAI-Privacy's changes are logged [here](CHANGELOG.md).
 
-Please **do not edit `CHANGELOG.md`**: it is generated automatically from the release notes
-([`options/mztap-release-notes.html`](options/mztap-release-notes.html)) and committed by a
-GitHub workflow on every push that touches them. If your change needs to be mentioned in the
-release notes, edit only the release-notes page. To regenerate the changelog locally, run
-`node .github/scripts/changelog-sync.mjs`.
-
 
 <br>
 
 ## Privacy and Permissions
-This add-on is a standard WebExtension: it does **not** use Thunderbird experimental APIs, so it does not ask for full permissions.
-
 It asks for two permissions at installation:
 * **storage**, for its own settings (diagnostics) and local data.
 * **Access to `huggingface.co` and `*.hf.co`**, used only to download the local model,
