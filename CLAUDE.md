@@ -75,10 +75,13 @@ See [`claude-spec/`](claude-spec/) for detailed architecture docs.
   `await` is used in the background script.
 - **Version** is read at runtime from the manifest
   (`browser.runtime.getManifest().version`) — do not hardcode it. When bumping a
-  release, change `manifest.json` `version`, add a `<h2>` block at the top of
-  [`options/mztap-release-notes.html`](options/mztap-release-notes.html) and the
-  same block at the top of [`CHANGELOG.md`](CHANGELOG.md) (note: CHANGELOG uses
-  HTML `<h2>`/`<ul>`, not markdown headings).
+  release, change `manifest.json` `version` and add a `<h2>` block at the top of
+  [`options/mztap-release-notes.html`](options/mztap-release-notes.html).
+- **Release notes**: edit only `options/mztap-release-notes.html`.
+  [`CHANGELOG.md`](CHANGELOG.md) is generated from it
+  (`node .github/scripts/changelog-sync.mjs`) and committed by the
+  `changelog-sync.yml` workflow on every push that touches the release notes —
+  never edit it by hand.
 - **Naming**: files/vars are prefixed `mztap` / `tap` (ThunderAI Privacy).
 - **License**: GPL-3.0 for the add-on's own files (keep the header block on new
   source files, with both authors: `Mic (m@micz.it), Nico Martin

@@ -86,6 +86,12 @@ fragments literal, without blocking otherwise usable content.
 ## Changelog
 ThunderAI-Privacy's changes are logged [here](CHANGELOG.md).
 
+Please **do not edit `CHANGELOG.md`**: it is generated automatically from the release notes
+([`options/mztap-release-notes.html`](options/mztap-release-notes.html)) and committed by a
+GitHub workflow on every push that touches them. If your change needs to be mentioned in the
+release notes, edit only the release-notes page. To regenerate the changelog locally, run
+`node .github/scripts/changelog-sync.mjs`.
+
 
 <br>
 
