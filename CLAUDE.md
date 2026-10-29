@@ -81,7 +81,10 @@ See [`claude-spec/`](claude-spec/) for detailed architecture docs.
   [`CHANGELOG.md`](CHANGELOG.md) is generated from it
   (`node .github/scripts/changelog-sync.mjs`) and committed by the
   `changelog-sync.yml` workflow on every push that touches the release notes —
-  never edit it by hand.
+  never edit it by hand. Pushing a stable tag (`v1.0.1`, not `v1.0.1pre1`) runs
+  `release-draft.yml`, which creates a **draft** GitHub release from that version's
+  `CHANGELOG.md` section plus contributors and Weblate translators; attach the XPI
+  and publish it by hand.
 - **Naming**: files/vars are prefixed `mztap` / `tap` (ThunderAI Privacy).
 - **License**: GPL-3.0 for the add-on's own files (keep the header block on new
   source files, with both authors: `Mic (m@micz.it), Nico Martin
