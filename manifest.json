@@ -2,7 +2,7 @@
     "manifest_version": 2,
     "name": "ThunderAI Privacy",
     "description": "__MSG_extensionDescription__",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "author": "Mic (m@micz.it), Nico Martin (mail@nico.dev)",
     "homepage_url": "https://micz.it/thunderbird-addon-thunderai/#privacy",
     "browser_specific_settings": {
