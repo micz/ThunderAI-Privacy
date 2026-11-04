@@ -8,6 +8,7 @@
     <main id="privacy_settings">
       <h1>ThunderAI Privacy</h1>
       <p id="privacy_intro" class="mzta_help">__MSG_privacy_intro__</p>
+      <div id="privacy_main_alert" role="alert" hidden></div>
       <section class="privacy_step" id="privacy_step_model" data-state="current" aria-labelledby="privacy_step_model_title">
         <h2 id="privacy_step_model_title"><span class="privacy_step_num" aria-hidden="true">1</span>__MSG_privacy_step_model__</h2>
         <div class="privacy_model_card" role="group" aria-labelledby="privacy_model_label">
@@ -34,7 +35,7 @@
           <label class="mzta_switch"><input type="checkbox" id="privacy_filter_enabled" aria-describedby="privacy_switch_help privacy_enable_note" disabled><span class="track"></span></label>
         </div>
       </section>
-      <details class="privacy_details">
+      <details class="privacy_details" id="privacy_coverage">
         <summary><span>__MSG_privacy_coverage_label__</span><span class="chev" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span></summary>
         <div class="privacy_details_body"><p class="mzta_help">__MSG_privacy_description__</p></div>
       </details>

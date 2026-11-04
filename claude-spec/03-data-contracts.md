@@ -57,8 +57,13 @@ its settings switch is a mirror, read with `getSetting` and written with `setSet
 (`{protocol: 1, enabled}`). Both reply `{ok: true, protocol: 1, enabled, locked}`;
 `locked` means a ThunderAI policy enforces the value, and `setSetting` is then refused
 with `{ok: false, error: {code: 'ai_processing_setting_locked', message}}`, which the
-settings page shows as is. Each call is bounded to 5 s; an absent or slow ThunderAI is
-`MAIN_UNAVAILABLE`, a malformed reply `PROTOCOL_UNSUPPORTED`. ThunderAI sends
+settings page shows as is. Each call is bounded to 5 s. The outcome names the
+ThunderAI that is there: a refused message (not installed or disabled) is
+`MAIN_MISSING`; a reply without a `protocol` number (a ThunderAI older than 5.2.0,
+`MAIN_MIN_VERSION`, whose background ignores the processing API) is `MAIN_OUTDATED`; a
+higher protocol than this add-on's is `PRIVACY_OUTDATED`; no answer within 5 s is
+`MAIN_UNAVAILABLE`; any other malformed reply `PROTOCOL_UNSUPPORTED`. The version
+number itself is never read (no `management` permission). ThunderAI sends
 `settingChanged` whenever the preference changes, whoever wrote it. ThunderAI
 discovers with `hello` before each new session, only while its switch is on.
 
@@ -121,8 +126,11 @@ Only this extension's pages may call `privacy.getState`, `privacy.setEnabled`,
 announcing a changed readiness like any other change, then answers as `privacy.getState`;
 the page then asks the Hub for the download size. `do_debug`
 lives in local storage, not sync. `privacy.getState` adds ThunderAI's `enabled` and
-`locked` and `main_available` (false when `getSetting` fails: the switch is then shown
-off and disabled), and the model fields as `model`. `privacy.setEnabled` forwards to `setSetting` and returns ThunderAI's
+`locked`, `main_available` (false when `getSetting` fails: the switch is then shown
+off and disabled) with `main_state` (`ok` or the failure code above) and `main_error`
+(the localized explanation the page shows in a box above the two steps; every panel of
+the page is then greyed out and inert until it is opened again), and the model fields as
+`model`. `privacy.setEnabled` forwards to `setSetting` and returns ThunderAI's
 `{enabled, locked}`. Enabling requires a supported 64-bit platform and a complete model
 cache, checked here (a fresh readiness check) before ThunderAI is asked; disabling is
 always forwarded. Model deletion is refused while ThunderAI's switch is on
