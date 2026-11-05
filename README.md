@@ -83,6 +83,12 @@ fragments literal, without blocking otherwise usable content.
 
 <br>
 
+## Contributing
+Bug reports, translations and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
+<br>Translations are managed on [Weblate](https://hosted.weblate.org/engage/thunderai/).
+
+<br>
+
 ## Changelog
 ThunderAI-Privacy's changes are logged [here](CHANGELOG.md).
 
