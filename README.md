@@ -42,7 +42,10 @@ Install both add-ons from the [ThunderAI add-on page](https://micz.it/thunderbir
 
 | ThunderAI Privacy | Requires ThunderAI | Thunderbird |
 |---|---|---|
-| 1.0.0 | Processing API v1 build (target 5.2.0) | 153+ (64-bit) |
+| 1.0.0 | 5.2.0 or later (processing API v1) | 153+ (64-bit) |
+
+Without a usable ThunderAI (not installed or disabled, older than 5.2.0, or requiring a
+newer ThunderAI Privacy) the settings page says which, at its top, and disables every panel.
 
 ### Development setup
 

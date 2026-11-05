@@ -21,7 +21,9 @@ before opening the site, rather than sending it unprocessed.
 Without an active processor, ThunderAI hooks return unchanged content. Active failures
 abort; there is no silent bypass. Exact wire messages and lifecycle semantics are in
 [03-data-contracts.md](03-data-contracts.md). Load both repositories as temporary
-add-ons; a ThunderAI build implementing API v1 is required (target ThunderAI 5.2.0).
+add-ons; ThunderAI 5.2.0 or later (the first build implementing API v1) is required.
+The settings page tells an older ThunderAI (one that ignores the protocol) apart from a
+missing one; see [03-data-contracts.md](03-data-contracts.md).
 
 ## Manual checks
 

@@ -18,6 +18,8 @@ import { restoreExactPrivacyPlaceholders } from './mztap-placeholders.js';
 
 const MAIN_ID = 'thunderai@micz.it';
 const PROTOCOL = 1;
+// The first ThunderAI with processing API v1: an older one ignores the protocol.
+const MAIN_MIN_VERSION = '5.2.0';
 const instanceId = crypto.randomUUID();
 const sessions = new Map();
 let prefs = { ...prefs_default };
@@ -28,9 +30,9 @@ const ready = browser.storage.local.get(prefs_default).then(value => {
     prefs = value;
     logger.changeDebug(prefs.do_debug);
 });
-const text = key => browser.i18n.getMessage(key) || key;
-function fail(code, key) {
-    const error = new Error(text(key));
+const text = (key, substitutions) => browser.i18n.getMessage(key, substitutions) || key;
+function fail(code, key, substitutions) {
+    const error = new Error(text(key, substitutions));
     error.code = code;
     throw error;
 }
@@ -123,21 +125,28 @@ async function startDownload() {
 }
 // Activation is ThunderAI's ai_processing_enabled preference; this add-on only
 // reads and writes it. A refusal (a policy lock) keeps ThunderAI's code and message.
+// The answer tells which ThunderAI is there, and the settings page names each case:
+// none (the message is refused: not installed or disabled, MAIN_MISSING), one older
+// than MAIN_MIN_VERSION (its background ignores the processing API and answers
+// nothing, MAIN_OUTDATED), one whose protocol is newer than this add-on
+// (PRIVACY_OUTDATED), or one that does not answer within 5 s (MAIN_UNAVAILABLE).
 async function askMain(action, fields = {}) {
     let timer;
+    const timeout = Symbol('timeout');
     try {
         const result = await Promise.race([
             browser.runtime.sendMessage(MAIN_ID, { action, protocol: PROTOCOL, ...fields }),
-            new Promise((_, reject) => {
-                timer = setTimeout(() => reject(new Error(text('privacy_main_unavailable'))), 5000);
-            }),
-        ]).catch(() => fail('MAIN_UNAVAILABLE', 'privacy_main_unavailable'));
+            new Promise(resolve => { timer = setTimeout(() => resolve(timeout), 5000); }),
+        ]).catch(() => fail('MAIN_MISSING', 'privacy_main_missing', [MAIN_MIN_VERSION]));
+        if (result === timeout) fail('MAIN_UNAVAILABLE', 'privacy_main_unavailable');
         if (result?.ok === false && typeof result.error?.code === 'string') {
             const error = new Error(result.error.message || text('privacy_main_unavailable'));
             error.code = result.error.code;
             throw error;
         }
-        if (!result?.ok || result.protocol !== PROTOCOL ||
+        if (!Number.isInteger(result?.protocol)) fail('MAIN_OUTDATED', 'privacy_main_outdated', [MAIN_MIN_VERSION]);
+        if (result.protocol > PROTOCOL) fail('PRIVACY_OUTDATED', 'privacy_self_outdated');
+        if (!result.ok || result.protocol !== PROTOCOL ||
             typeof result.enabled !== 'boolean' || typeof result.locked !== 'boolean') {
             fail('PROTOCOL_UNSUPPORTED', 'privacy_main_unavailable');
         }
@@ -146,11 +155,13 @@ async function askMain(action, fields = {}) {
         clearTimeout(timer);
     }
 }
+// `main_state` and `main_error` tell the settings page why ThunderAI is unavailable.
 async function mainSetting() {
     try {
-        return { ...await askMain('aiProcessing.getSetting'), main_available: true };
-    } catch {
-        return { enabled: false, locked: false, main_available: false };
+        return { ...await askMain('aiProcessing.getSetting'), main_available: true, main_state: 'ok', main_error: '' };
+    } catch (error) {
+        return { enabled: false, locked: false, main_available: false,
+            main_state: error.code || 'MAIN_UNAVAILABLE', main_error: error.message || text('privacy_main_unavailable') };
     }
 }
 function dispose(sessionId) {

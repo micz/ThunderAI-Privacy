@@ -16,6 +16,8 @@ export async function initPrivacyOptions() {
     const remove = document.getElementById('privacy_delete');
     const size = document.getElementById('privacy_size');
     const status = document.getElementById('privacy_status');
+    const mainAlert = document.getElementById('privacy_main_alert');
+    const coverage = document.getElementById('privacy_coverage');
     const progress = document.getElementById('privacy_progress');
     const backend = document.getElementById('privacy_backend');
     const log = document.getElementById('do_debug');
@@ -34,6 +36,9 @@ export async function initPrivacyOptions() {
     let supported = false;
     let arch = '';
     let mainAvailable = false;
+    // Why ThunderAI is unavailable (missing, older than the minimum version, newer
+    // than this add-on, not answering), already worded by the background.
+    let mainError = '';
     let locked = false;
     // The outcome of the last action on this page, shown until the next one.
     let notice = null;
@@ -47,11 +52,20 @@ export async function initPrivacyOptions() {
         status.dataset.state = state;
     };
     function render() {
+        // No usable ThunderAI (missing, older than the minimum version, newer than this
+        // add-on, not answering): the box above the steps says which, and every panel
+        // (both steps, coverage and diagnostics) is greyed out and inert. The page asks
+        // ThunderAI again when it is opened.
+        const blocked = !mainAvailable;
+        mainAlert.hidden = !blocked;
+        mainAlert.textContent = blocked ? (mainError || msg('privacy_main_unavailable')) : '';
+        for (const panel of [stepModel, stepEnable, coverage, diagnostics]) panel.dataset.disabled = String(blocked);
+        if (blocked) coverage.open = diagnostics.open = false;
         // Step 1: the model.
-        download.disabled = busy || model.ready || model.downloading || !supported;
-        refresh.disabled = busy || !supported;
+        download.disabled = busy || blocked || model.ready || model.downloading || !supported;
+        refresh.disabled = busy || blocked || !supported;
         // A model in use goes only once the protection is off (the background refuses too).
-        remove.disabled = busy || !model.ready || model.downloading || toggle.checked;
+        remove.disabled = busy || blocked || !model.ready || model.downloading || toggle.checked;
         deleteNote.hidden = !(model.ready && toggle.checked);
         progress.hidden = !model.downloading;
         if (Number.isFinite(model.progress)) progress.value = model.progress;
@@ -65,14 +79,14 @@ export async function initPrivacyOptions() {
         else if (model.ready) setStatus(msg(toggle.checked ? 'privacy_enabled' : 'privacy_downloaded'), 'ready');
         else setStatus(msg('privacy_download_required'), 'missing');
         // Step 2: the switch. On without its model it can still be turned OFF.
-        toggle.disabled = busy || !mainAvailable || locked || (!toggle.checked && !model.ready);
-        const reason = !mainAvailable ? 'privacy_main_unavailable' : locked ? 'privacy_locked' :
-            (!toggle.checked && !model.ready) ? 'privacy_enable_needs_model' : null;
+        toggle.disabled = busy || blocked || locked || (!toggle.checked && !model.ready);
+        const reason = blocked ? '' : locked ? msg('privacy_locked') :
+            (!toggle.checked && !model.ready) ? msg('privacy_enable_needs_model') : '';
         enableNote.hidden = !reason;
-        enableNote.textContent = reason ? msg(reason) : '';
-        stepModel.dataset.state = model.ready ? 'done' : 'current';
-        stepEnable.dataset.state = !model.ready && !toggle.checked ? 'blocked' : toggle.checked ? 'done' : 'current';
-        log.disabled = busy;
+        enableNote.textContent = reason;
+        stepModel.dataset.state = blocked ? 'blocked' : model.ready ? 'done' : 'current';
+        stepEnable.dataset.state = blocked || (!model.ready && !toggle.checked) ? 'blocked' : toggle.checked ? 'done' : 'current';
+        log.disabled = busy || blocked;
     }
     browser.runtime.onMessage.addListener(message => {
         if (message?.action === 'privacyState.changed' && !busy) {
@@ -93,6 +107,7 @@ export async function initPrivacyOptions() {
         const state = await settings(action);
         toggle.checked = state.enabled;
         mainAvailable = state.main_available;
+        mainError = state.main_error || '';
         locked = state.locked;
         log.checked = state.do_debug;
         supported = state.supported;

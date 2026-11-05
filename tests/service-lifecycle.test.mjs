@@ -38,14 +38,28 @@ test('a policy lock in ThunderAI is reported and changes nothing', async () => {
     assert.equal(h.main.enabled, true);
 });
 
-test('ThunderAI unreachable or incompatible: getState says so, setEnabled fails, nothing is assumed', async () => {
+test('ThunderAI missing, too old, too new or malformed: getState names the case, setEnabled fails, nothing is assumed', async () => {
     const h = await serviceHarness({ enabled: true });
+    // Not installed or disabled: the message is refused.
     h.main.available = false;
-    const state = await h.settings({ action: 'privacy.getState' });
-    assert.deepEqual([state.enabled, state.main_available], [false, false]);
-    assert.equal((await h.settings({ action: 'privacy.setEnabled', enabled: false })).error.code, 'MAIN_UNAVAILABLE');
+    let state = await h.settings({ action: 'privacy.getState' });
+    assert.deepEqual([state.enabled, state.main_available, state.main_state], [false, false, 'MAIN_MISSING']);
+    assert.equal(state.main_error, 'privacy_main_missing');
+    assert.equal((await h.settings({ action: 'privacy.setEnabled', enabled: false })).error.code, 'MAIN_MISSING');
+    // Older than 5.2.0: its background has no processing API and answers nothing.
     h.main.available = true;
-    h.controls.setting = () => ({ ok: true, protocol: 99 });
+    h.controls.setting = () => undefined;
+    state = await h.settings({ action: 'privacy.getState' });
+    assert.deepEqual([state.main_available, state.main_state, state.main_error], [false, 'MAIN_OUTDATED', 'privacy_main_outdated']);
+    assert.equal((await h.settings({ action: 'privacy.setEnabled', enabled: false })).error.code, 'MAIN_OUTDATED');
+    // A newer protocol: this add-on is the old one.
+    h.controls.setting = () => ({ ok: true, protocol: 2, enabled: true, locked: false });
+    state = await h.settings({ action: 'privacy.getState' });
+    assert.deepEqual([state.main_available, state.main_state], [false, 'PRIVACY_OUTDATED']);
+    assert.equal((await h.settings({ action: 'privacy.setEnabled', enabled: false })).error.code, 'PRIVACY_OUTDATED');
+    // The right protocol with a malformed reply.
+    h.controls.setting = () => ({ ok: true, protocol: 1 });
+    assert.equal((await h.settings({ action: 'privacy.getState' })).main_state, 'PROTOCOL_UNSUPPORTED');
     assert.equal((await h.settings({ action: 'privacy.setEnabled', enabled: false })).error.code, 'PROTOCOL_UNSUPPORTED');
     assert.equal(h.main.enabled, true);
 });
