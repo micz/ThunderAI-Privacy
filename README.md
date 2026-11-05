@@ -3,7 +3,8 @@ ThunderAI Privacy is an add-on for Thunderbird, designed to add privacy features
 
 > [!IMPORTANT]
 > ThunderAI-Privacy is a companion add-on: it does nothing on its own.
-> To use it, you first need to install [ThunderAI](https://github.com/micz/ThunderAI).
+> To use it, you first need to install [ThunderAI](https://github.com/micz/ThunderAI),
+> version **5.2.0 or later** ([ThunderAI releases](https://github.com/micz/ThunderAI/releases)).
 
 <br>
 
