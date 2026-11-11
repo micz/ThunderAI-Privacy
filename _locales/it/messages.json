@@ -1,0 +1,221 @@
+{
+  "privacy_text_unsupported": {
+    "message": "Questo testo non può essere filtrato in modo sicuro. Modifica l'input o avvia un nuovo prompt; riavviare Thunderbird non risolverà questo errore, che dipende dal testo.",
+    "description": "A deterministic tokenizer alignment, chunking or reserved-placeholder error."
+  },
+  "privacy_unrestored_placeholder": {
+    "message": "L'IA ha modificato un segnaposto della privacy. La risposta è stata bloccata invece di inserire un risultato incompleto o ripristinato in modo errato. Rigenera la risposta o avvia un nuovo prompt.",
+    "description": "Blocking error when a response still contains a changed or unknown placeholder from the current conversation."
+  },
+  "privacy_invalid_json": {
+    "message": "L'elaborazione della privacy ha bloccato un JSON non valido nella configurazione del fornitore. Correggi il JSON di extra-body, opzioni o schema prima di riprovare."
+  },
+  "privacy_identifier_key_invalid": {
+    "message": "La chiave locale degli identificatori della privacy non è valida. L'elaborazione della privacy è stata bloccata; ripristina l'archivio locale del componente aggiuntivo prima di riprovare."
+  },
+  "privacy_title": {
+    "message": "Filtro privacy locale"
+  },
+  "privacy_intro": {
+    "message": "Maschera i dati personali in locale prima delle richieste all'IA e li ripristina nella risposta. Il rilevamento è fatto al meglio delle possibilità, senza garanzie."
+  },
+  "privacy_model_label": {
+    "message": "Modello locale"
+  },
+  "privacy_processing_label": {
+    "message": "Elaborazione"
+  },
+  "privacy_coverage_label": {
+    "message": "Copertura e limitazioni"
+  },
+  "privacy_diagnostics_label": {
+    "message": "Diagnostica"
+  },
+  "privacy_sensitive_note": {
+    "message": "Contiene i valori privati originali"
+  },
+  "privacy_enabled": {
+    "message": "Il filtro privacy è attivo. Le modifiche si applicano alle nuove chat e ai nuovi comandi."
+  },
+  "privacy_description": {
+    "message": "Maschera in locale i dati personali rilevati nei prompt di ThunderAI, nelle domande successive e nelle funzioni automatiche, comprese le istruzioni per il fornitore. Gli input lunghi vengono suddivisi in blocchi sovrapposti di massimo 2048 token del modello, poi viene inviata un'unica richiesta mascherata completa. Il rilevamento può non individuare alcuni dati, anche a cavallo tra i blocchi. I limiti di contesto del fornitore restano validi. Funziona solo con le connessioni API: quando è attivo, ThunderAI blocca i prompt inviati tramite ChatGPT Web invece di inviarli senza elaborazione."
+  },
+  "privacy_enable": {
+    "message": "Usa ThunderAI Privacy per tutte le funzioni di ThunderAI"
+  },
+  "privacy_cancelled": {
+    "message": "Filtro privacy annullato. Questa operazione non ha inviato nulla."
+  },
+  "privacy_size_label": {
+    "message": "Dimensione del download"
+  },
+  "privacy_size_unknown": {
+    "message": "Verifica lo stato per ottenere le informazioni sul modello"
+  },
+  "privacy_download": {
+    "message": "Scarica il modello"
+  },
+  "privacy_refresh": {
+    "message": "Verifica lo stato"
+  },
+  "privacy_delete": {
+    "message": "Elimina il modello"
+  },
+  "privacy_delete_confirm": {
+    "message": "Eliminare questo modello per la privacy e liberare lo spazio su disco? Dovrai scaricarlo di nuovo prima di riattivare la protezione."
+  },
+  "privacy_deleted": {
+    "message": "Modello eliminato. Scaricalo di nuovo prima di usare il filtro privacy."
+  },
+  "privacy_download_required": {
+    "message": "Scarica il modello per la privacy completo dalle impostazioni di ThunderAI Privacy prima di usarlo. WebGPU e WASM usano gli stessi file del modello fp16."
+  },
+  "privacy_downloaded": {
+    "message": "Modello scaricato. Ora puoi attivare la protezione al passaggio 2."
+  },
+  "privacy_backend_webgpu": {
+    "message": "WebGPU · pesi fp16"
+  },
+  "privacy_backend_wasm": {
+    "message": "WASM · pesi fp16, calcolo fp32 (alternativa su CPU)"
+  },
+  "privacy_permission_required": {
+    "message": "È necessaria l'autorizzazione per accedere ai download dei modelli da Hugging Face."
+  },
+  "privacy_platform_unsupported": {
+    "message": "Questo modello richiede una versione di Thunderbird a 64 bit supportata (x86-64 o ARM64). Le versioni a 32 bit non sono supportate. Nessun modello è stato caricato."
+  },
+  "privacy_main_unavailable": {
+    "message": "ThunderAI non è disponibile.\nInstalla o attiva una versione compatibile di ThunderAI con supporto per l'API di elaborazione v1 per usare ThunderAI Privacy."
+  },
+  "privacy_main_missing": {
+    "message": "ThunderAI non è installato o è disattivato.\nInstalla o attiva ThunderAI $VERSION$ o successivo per usare ThunderAI Privacy.",
+    "placeholders": {
+      "version": {
+        "content": "$1",
+        "example": "5.2.0"
+      }
+    }
+  },
+  "privacy_main_outdated": {
+    "message": "La versione di ThunderAI installata è troppo vecchia: è richiesta la versione $VERSION$ o successiva.\nAggiorna ThunderAI per usare ThunderAI Privacy.",
+    "placeholders": {
+      "version": {
+        "content": "$1",
+        "example": "5.2.0"
+      }
+    }
+  },
+  "privacy_self_outdated": {
+    "message": "La versione di ThunderAI installata richiede una versione più recente di ThunderAI Privacy.\nAggiorna ThunderAI Privacy per usarlo con questa versione di ThunderAI."
+  },
+  "privacy_switch_mirror": {
+    "message": "Questo è lo stesso interruttore di \"Usa ThunderAI Privacy\" nelle opzioni avanzate di ThunderAI: modificando l'uno si modifica anche l'altro."
+  },
+  "privacy_step_model": {
+    "message": "Scarica il modello locale"
+  },
+  "privacy_step_enable": {
+    "message": "Attiva la protezione"
+  },
+  "privacy_enable_needs_model": {
+    "message": "Scarica prima il modello locale (passaggio 1)."
+  },
+  "privacy_delete_disable_first": {
+    "message": "Disattiva la protezione prima di eliminare il modello."
+  },
+  "privacy_delete_downloading": {
+    "message": "Attendi il termine del download prima di eliminare il modello."
+  },
+  "privacy_download_failed": {
+    "message": "Il download del modello non è riuscito. Controlla la connessione e riprova."
+  },
+  "privacy_downloading": {
+    "message": "Download del modello in corso…"
+  },
+  "prefs_footer_translate": {
+    "message": "Traduci il componente aggiuntivo"
+  },
+  "prefs_footer_donate": {
+    "message": "Fai una donazione"
+  },
+  "privacy_locked": {
+    "message": "La tua organizzazione gestisce questo interruttore tramite i criteri di ThunderAI."
+  },
+  "privacy_session_expired": {
+    "message": "La sessione della privacy è scaduta o il componente aggiuntivo è stato riavviato. Avvia una nuova chat o un nuovo comando di ThunderAI."
+  },
+  "privacy_invalid_request": {
+    "message": "ThunderAI ha inviato una richiesta di elaborazione non valida. Aggiorna entrambi i componenti aggiuntivi insieme."
+  },
+  "privacy_memory_error": {
+    "message": "Il modello locale per la privacy ha esaurito la memoria. Chiudi le altre applicazioni, riavvia Thunderbird e prova con un input più breve."
+  },
+  "privacy_inference_error": {
+    "message": "L'elaborazione locale della privacy non è riuscita. Questa operazione non ha inviato nulla. Riprova dopo aver riavviato Thunderbird; controlla il download del modello e attiva la diagnostica per maggiori dettagli."
+  },
+  "privacy_extra_body_key_unsupported": {
+    "message": "Il filtro privacy ha bloccato un dato personale rilevato in una chiave API/schema. Rimuovi quella chiave o sposta il valore in un campo di testo/metadati supportato."
+  },
+  "privacy_extra_body_key_collision": {
+    "message": "Il filtro privacy creerebbe chiavi extra-body duplicate. Modifica quella configurazione prima di riprovare."
+  },
+  "privacy_log": {
+    "message": "Registra temporaneamente richieste, corrispondenze dei segnaposto e risposte"
+  },
+  "privacy_log_warning": {
+    "message": "Registra il contenuto preparato per gli hook, le corrispondenze dei segnaposto con i valori privati originali, l'avanzamento e gli errori locali e le risposte prima del ripristino, non le effettive richieste HTTP al fornitore. I log contengono dati sensibili. Usa messaggi fittizi e controlla i log prima di condividerli. Le modifiche si applicano alle nuove chat."
+  },
+  "extensionDescription": {
+    "message": "ThunderAI Privacy è un componente aggiuntivo per Thunderbird, pensato per aggiungere funzioni per la privacy a ThunderAI.",
+    "description": "Description of the extension."
+  },
+  "prefs_OptionText_do_debug": {
+    "message": "Attiva la modalità di debug",
+    "description": ""
+  },
+  "prefs_OptionText_do_debug_info": {
+    "message": "Attiva il sistema di debug",
+    "description": ""
+  },
+  "prefsInfoTitle": {
+    "message": "Informazioni importanti",
+    "description": ""
+  },
+  "prefsInfoDesc_1": {
+    "message": "ThunderAI Privacy è un componente aggiuntivo complementare per Thunderbird, pensato per aggiungere funzioni per la privacy a ThunderAI. Per usare questo componente aggiuntivo devi installare ThunderAI.",
+    "description": ""
+  },
+  "prefsInfoDesc_2": {
+    "message": "Scarica ThunderAI dalla pagina dei componenti aggiuntivi di Thunderbird!",
+    "description": ""
+  },
+  "prefsInfoDesc_3": {
+    "message": " ",
+    "description": ""
+  },
+  "TranslateText": {
+    "message": "Vuoi aiutare a tradurre ThunderAI e ThunderAI Privacy?",
+    "description": ""
+  },
+  "TranslateLink": {
+    "message": "Scopri come!",
+    "description": ""
+  },
+  "prefsDonation_1": {
+    "message": "Ti piace questo componente aggiuntivo?",
+    "description": ""
+  },
+  "prefsDonation_2": {
+    "message": "Considera di fare una donazione!",
+    "description": ""
+  },
+  "prefs_OptionText_release_notes": {
+    "message": "Note di rilascio",
+    "description": ""
+  },
+  "backToOptionsText": {
+    "message": "Opzioni",
+    "description": ""
+  }
+}
