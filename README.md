@@ -1,4 +1,13 @@
 # ![ThunderAI-Privacy icon](images/icon-32px.png "ThunderAI-Privacy") ThunderAI-Privacy
+
+[![Latest release](https://micz.it/badges/privacy/release.svg)](https://github.com/micz/ThunderAI-Privacy/releases/latest)
+[![Latest pre-release](https://micz.it/badges/privacy/prerelease.svg)](https://github.com/micz/ThunderAI-Privacy/releases)
+[![Development version](https://micz.it/badges/privacy/dev.svg)](https://github.com/micz/ThunderAI-Privacy/tree/dev)
+[![Thunderbird Add-ons](https://img.shields.io/badge/Thunderbird%20Add--ons-install-blue?logo=thunderbird)](https://addons.thunderbird.net/thunderbird/addon/thunderai-privacy/)
+[![Requires ThunderAI 5.2.0+](https://img.shields.io/badge/ThunderAI-5.2.0%2B-purple)](https://github.com/micz/ThunderAI)
+[![Thunderbird 153+](https://img.shields.io/badge/Thunderbird-153%2B-informational?logo=thunderbird)](https://www.thunderbird.net/)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-green.svg)](LICENSE)
+
 ThunderAI Privacy is an add-on for Thunderbird, designed to add privacy features to ThunderAI.
 
 > [!IMPORTANT]
