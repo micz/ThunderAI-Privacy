@@ -1,6 +1,11 @@
 # ![ThunderAI-Privacy icon](images/icon-32px.png "ThunderAI-Privacy") ThunderAI-Privacy Release Notes
 
 
+<h2>Version 1.1.0 - ??/??/2026</h2>
+<ul>
+  <li>Added French, German and Italian translations.</li>
+  <li>...</li>
+</ul>
 <h2>Version 1.0.1 - 05/11/2026</h2>
 <ul>
   <li>Added a warning when the ThunderAI version is too old.</li>
