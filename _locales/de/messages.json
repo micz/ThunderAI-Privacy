@@ -1,0 +1,221 @@
+{
+  "privacy_text_unsupported": {
+    "message": "Dieser Text kann nicht sicher gefiltert werden. Bearbeiten Sie die Eingabe oder starten Sie einen neuen Prompt; ein Neustart von Thunderbird behebt diesen textspezifischen Fehler nicht.",
+    "description": "A deterministic tokenizer alignment, chunking or reserved-placeholder error."
+  },
+  "privacy_unrestored_placeholder": {
+    "message": "Die KI hat einen Datenschutz-Platzhalter verändert. Die Antwort wurde blockiert, anstatt ein unvollständiges oder falsch wiederhergestelltes Ergebnis einzufügen. Erzeugen Sie die Antwort neu oder starten Sie einen neuen Prompt.",
+    "description": "Blocking error when a response still contains a changed or unknown placeholder from the current conversation."
+  },
+  "privacy_invalid_json": {
+    "message": "Die Datenschutzverarbeitung hat ungültiges JSON in der Anbieterkonfiguration blockiert. Korrigieren Sie das JSON für Extra-Body, Optionen oder Schema, bevor Sie es erneut versuchen."
+  },
+  "privacy_identifier_key_invalid": {
+    "message": "Der lokale Datenschutz-Kennungsschlüssel ist ungültig. Die Datenschutzverarbeitung wurde blockiert; stellen Sie den lokalen Speicher des Begleit-Add-ons wieder her, bevor Sie es erneut versuchen."
+  },
+  "privacy_title": {
+    "message": "Lokaler Datenschutzfilter"
+  },
+  "privacy_intro": {
+    "message": "Maskiert personenbezogene Daten lokal vor KI-Anfragen und stellt sie in der Antwort wieder her. Die Erkennung erfolgt nach bestem Bemühen, ohne Gewähr."
+  },
+  "privacy_model_label": {
+    "message": "Lokales Modell"
+  },
+  "privacy_processing_label": {
+    "message": "Verarbeitung"
+  },
+  "privacy_coverage_label": {
+    "message": "Abdeckung und Einschränkungen"
+  },
+  "privacy_diagnostics_label": {
+    "message": "Diagnose"
+  },
+  "privacy_sensitive_note": {
+    "message": "Enthält die ursprünglichen privaten Werte"
+  },
+  "privacy_enabled": {
+    "message": "Der Datenschutzfilter ist aktiviert. Änderungen gelten für neue Chats und Befehle."
+  },
+  "privacy_description": {
+    "message": "Maskiert erkannte personenbezogene Daten lokal in ThunderAI-Prompts, Folgefragen und automatischen Funktionen, einschließlich der Anweisungen an den Anbieter. Lange Eingaben werden in überlappende Abschnitte von bis zu 2048 Modell-Tokens aufgeteilt, danach wird eine einzige vollständige maskierte Anfrage gesendet. Die Erkennung kann Daten übersehen, auch über Abschnittsgrenzen hinweg. Die Kontextgrenzen des Anbieters gelten weiterhin. Funktioniert nur mit API-Verbindungen: Solange er aktiviert ist, blockiert ThunderAI einen über ChatGPT Web gesendeten Prompt, anstatt ihn unverarbeitet zu senden."
+  },
+  "privacy_enable": {
+    "message": "ThunderAI Privacy für alle ThunderAI-Funktionen verwenden"
+  },
+  "privacy_cancelled": {
+    "message": "Datenschutzfilterung abgebrochen. Durch diesen Vorgang wurde nichts gesendet."
+  },
+  "privacy_size_label": {
+    "message": "Downloadgröße"
+  },
+  "privacy_size_unknown": {
+    "message": "Status prüfen, um die Modellinformationen abzurufen"
+  },
+  "privacy_download": {
+    "message": "Modell herunterladen"
+  },
+  "privacy_refresh": {
+    "message": "Status prüfen"
+  },
+  "privacy_delete": {
+    "message": "Modell löschen"
+  },
+  "privacy_delete_confirm": {
+    "message": "Dieses Datenschutzmodell löschen und den Speicherplatz freigeben? Sie müssen es erneut herunterladen, bevor Sie den Schutz wieder aktivieren können."
+  },
+  "privacy_deleted": {
+    "message": "Modell gelöscht. Laden Sie es erneut herunter, bevor Sie den Datenschutzfilter verwenden."
+  },
+  "privacy_download_required": {
+    "message": "Laden Sie das vollständige Datenschutzmodell in den Einstellungen von ThunderAI Privacy herunter, bevor Sie es verwenden. WebGPU und WASM verwenden dieselben fp16-Modelldateien."
+  },
+  "privacy_downloaded": {
+    "message": "Modell heruntergeladen. Sie können den Schutz jetzt in Schritt 2 aktivieren."
+  },
+  "privacy_backend_webgpu": {
+    "message": "WebGPU · fp16-Gewichte"
+  },
+  "privacy_backend_wasm": {
+    "message": "WASM · fp16-Gewichte, fp32-Berechnung (CPU-Ausweichlösung)"
+  },
+  "privacy_permission_required": {
+    "message": "Die Berechtigung für den Zugriff auf Modell-Downloads von Hugging Face ist erforderlich."
+  },
+  "privacy_platform_unsupported": {
+    "message": "Dieses Modell erfordert eine unterstützte 64-Bit-Version von Thunderbird (x86-64 oder ARM64). 32-Bit-Versionen werden nicht unterstützt. Es wurde kein Modell geladen."
+  },
+  "privacy_main_unavailable": {
+    "message": "ThunderAI ist nicht verfügbar.\nInstallieren oder aktivieren Sie eine kompatible ThunderAI-Version mit Unterstützung für die Verarbeitungs-API v1, um ThunderAI Privacy zu verwenden."
+  },
+  "privacy_main_missing": {
+    "message": "ThunderAI ist nicht installiert oder deaktiviert.\nInstallieren oder aktivieren Sie ThunderAI $VERSION$ oder neuer, um ThunderAI Privacy zu verwenden.",
+    "placeholders": {
+      "version": {
+        "content": "$1",
+        "example": "5.2.0"
+      }
+    }
+  },
+  "privacy_main_outdated": {
+    "message": "Die installierte ThunderAI-Version ist zu alt: Version $VERSION$ oder neuer ist erforderlich.\nAktualisieren Sie ThunderAI, um ThunderAI Privacy zu verwenden.",
+    "placeholders": {
+      "version": {
+        "content": "$1",
+        "example": "5.2.0"
+      }
+    }
+  },
+  "privacy_self_outdated": {
+    "message": "Die installierte ThunderAI-Version erfordert eine neuere Version von ThunderAI Privacy.\nAktualisieren Sie ThunderAI Privacy, um es mit dieser ThunderAI-Version zu verwenden."
+  },
+  "privacy_switch_mirror": {
+    "message": "Dies ist derselbe Schalter wie „ThunderAI Privacy verwenden“ in den erweiterten Optionen von ThunderAI: Wird einer geändert, ändert sich auch der andere."
+  },
+  "privacy_step_model": {
+    "message": "Lokales Modell herunterladen"
+  },
+  "privacy_step_enable": {
+    "message": "Schutz aktivieren"
+  },
+  "privacy_enable_needs_model": {
+    "message": "Laden Sie zuerst das lokale Modell herunter (Schritt 1)."
+  },
+  "privacy_delete_disable_first": {
+    "message": "Deaktivieren Sie den Schutz, bevor Sie das Modell löschen."
+  },
+  "privacy_delete_downloading": {
+    "message": "Warten Sie, bis der Download abgeschlossen ist, bevor Sie das Modell löschen."
+  },
+  "privacy_download_failed": {
+    "message": "Der Download des Modells ist fehlgeschlagen. Überprüfen Sie Ihre Verbindung und versuchen Sie es erneut."
+  },
+  "privacy_downloading": {
+    "message": "Modell wird heruntergeladen…"
+  },
+  "prefs_footer_translate": {
+    "message": "Das Add-on übersetzen"
+  },
+  "prefs_footer_donate": {
+    "message": "Spenden"
+  },
+  "privacy_locked": {
+    "message": "Ihre Organisation verwaltet diesen Schalter über die ThunderAI-Richtlinie."
+  },
+  "privacy_session_expired": {
+    "message": "Die Datenschutzsitzung ist abgelaufen oder das Begleit-Add-on wurde neu gestartet. Starten Sie einen neuen ThunderAI-Chat oder -Befehl."
+  },
+  "privacy_invalid_request": {
+    "message": "ThunderAI hat eine ungültige Verarbeitungsanfrage gesendet. Aktualisieren Sie beide Add-ons gemeinsam."
+  },
+  "privacy_memory_error": {
+    "message": "Dem lokalen Datenschutzmodell ist der Arbeitsspeicher ausgegangen. Schließen Sie andere Anwendungen, starten Sie Thunderbird neu und versuchen Sie es mit einer kürzeren Eingabe."
+  },
+  "privacy_inference_error": {
+    "message": "Die lokale Datenschutzverarbeitung ist fehlgeschlagen. Durch diesen Vorgang wurde nichts gesendet. Versuchen Sie es nach einem Neustart von Thunderbird erneut; überprüfen Sie den Modell-Download und aktivieren Sie die Diagnose für weitere Details."
+  },
+  "privacy_extra_body_key_unsupported": {
+    "message": "Der Datenschutzfilter hat einen erkannten personenbezogenen Wert in einem API-/Schema-Schlüssel blockiert. Entfernen Sie diesen Schlüssel oder verschieben Sie den Wert in ein unterstütztes Text-/Metadatenfeld."
+  },
+  "privacy_extra_body_key_collision": {
+    "message": "Der Datenschutzfilter würde doppelte Extra-Body-Schlüssel erzeugen. Ändern Sie diese Konfiguration, bevor Sie es erneut versuchen."
+  },
+  "privacy_log": {
+    "message": "Anfragen, Platzhalterzuordnungen und Antworten vorübergehend protokollieren"
+  },
+  "privacy_log_warning": {
+    "message": "Protokolliert die vorbereiteten Hook-Inhalte, die Platzhalterzuordnungen einschließlich der ursprünglichen privaten Werte, lokalen Fortschritt und Fehler sowie die Antworten vor der Wiederherstellung – nicht die tatsächlichen HTTP-Anfragen an den Anbieter. Die Protokolle enthalten sensible Daten. Verwenden Sie fiktive Nachrichten und prüfen Sie die Protokolle, bevor Sie sie weitergeben. Änderungen gelten für neue Chats."
+  },
+  "extensionDescription": {
+    "message": "ThunderAI Privacy ist ein Thunderbird-Add-on, das ThunderAI um Datenschutzfunktionen erweitert.",
+    "description": "Description of the extension."
+  },
+  "prefs_OptionText_do_debug": {
+    "message": "Debug-Modus aktivieren",
+    "description": ""
+  },
+  "prefs_OptionText_do_debug_info": {
+    "message": "Das Debug-System aktivieren",
+    "description": ""
+  },
+  "prefsInfoTitle": {
+    "message": "Wichtige Informationen",
+    "description": ""
+  },
+  "prefsInfoDesc_1": {
+    "message": "ThunderAI Privacy ist ein Begleit-Add-on für Thunderbird, das ThunderAI um Datenschutzfunktionen erweitert. Um dieses Add-on zu verwenden, müssen Sie ThunderAI installieren.",
+    "description": ""
+  },
+  "prefsInfoDesc_2": {
+    "message": "Holen Sie sich ThunderAI auf der Add-ons-Seite von Thunderbird!",
+    "description": ""
+  },
+  "prefsInfoDesc_3": {
+    "message": " ",
+    "description": ""
+  },
+  "TranslateText": {
+    "message": "Möchten Sie helfen, ThunderAI und ThunderAI Privacy zu übersetzen?",
+    "description": ""
+  },
+  "TranslateLink": {
+    "message": "Erfahren Sie wie!",
+    "description": ""
+  },
+  "prefsDonation_1": {
+    "message": "Gefällt Ihnen dieses Add-on?",
+    "description": ""
+  },
+  "prefsDonation_2": {
+    "message": "Erwägen Sie eine Spende!",
+    "description": ""
+  },
+  "prefs_OptionText_release_notes": {
+    "message": "Versionshinweise",
+    "description": ""
+  },
+  "backToOptionsText": {
+    "message": "Optionen",
+    "description": ""
+  }
+}
